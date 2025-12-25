@@ -63,6 +63,26 @@ If we want to run AetherOS on a standard Linux kernel (bypassing Android Init en
 - **Precedent**: SailfishOS and Ubuntu Touch use this.
 - **Recommendation**: For the "Android Replacement" goal, we should stick to **Strategy A**: run *as* an Android executable (using Bionic), but replace the upper Java Framework (SurfaceFlinger/Zygote).
 
+## 6. Security Barriers (SELinux & AVB)
+You asked about permissions. Android is notorious for locking down Native processes.
+
+### The Obstacles
+1.  **SELinux**: Even as `root`, you cannot just open `/dev/kvm` or `/dev/dri` if the Security Policy (`sepolicy`) forbids your domain from doing so.
+2.  **Seccomp**: The Kernel filters "dangerous" syscalls.
+3.  **AVB (Verified Boot)**: If we modify `boot.img` to spawn AetherOS, the phone will refuse to boot unless the bootloader is unlocked.
+
+### The Solution: Access Levels
+
+#### Level 1: "Rooted App" (Development)
+- Device must be **Unlock Bootloader**.
+- We use `su` to launch AetherOS.
+- We perform `setenforce 0` (Permissive Mode) to bypass SELinux temporarily.
+
+#### Level 2: "Custom ROM" (Production)
+- We modify `init.rc` to start `service aether /system/bin/aether-kernel`.
+- We compile a custom **SEPolicy (`.te` file)** granting `allow aether kvm_device:chr_file rw_file_perms;`.
+- This is how OEMs add their own services. We play by the same rules.
+
 ## Summary
 The current `minifb` implementation is a "Simulator" for development.
 The Android target will evolve into a "Driver" that talks to silicon, potentially using `libhybris` or native HIDL to bridge proprietary vendor blobs.
