@@ -1,5 +1,3 @@
-pub mod macos;
-
 pub trait Backend: Sync + Send {
     fn new() -> Self;
     fn name(&self) -> &str;
@@ -7,20 +5,6 @@ pub trait Backend: Sync + Send {
     // Unsafe because it returns a slice to raw memory modified by another thread
     unsafe fn get_framebuffer(&self, width: usize, height: usize) -> &[u32];
 }
-
-#[cfg(target_os = "macos")]
-pub use macos::MacBackend as CurrentBackend;
-
-#[cfg(any(target_os = "linux", target_os = "android"))]
-pub use linux::LinuxBackend as CurrentBackend;
-
-
-#[cfg(target_os = "windows")]
-pub use windows::WindowsBackend as CurrentBackend;
-
-#[cfg(target_os = "freebsd")]
-pub use freebsd::FreeBsdBackend as CurrentBackend;
-
 
 #[cfg(target_os = "macos")]
 mod macos;
@@ -33,3 +17,15 @@ mod windows;
 
 #[cfg(target_os = "freebsd")]
 mod freebsd;
+
+#[cfg(target_os = "macos")]
+pub use macos::MacBackend as CurrentBackend;
+
+#[cfg(any(target_os = "linux", target_os = "android"))]
+pub use linux::LinuxBackend as CurrentBackend;
+
+#[cfg(target_os = "windows")]
+pub use windows::WindowsBackend as CurrentBackend;
+
+#[cfg(target_os = "freebsd")]
+pub use freebsd::FreeBsdBackend as CurrentBackend;
