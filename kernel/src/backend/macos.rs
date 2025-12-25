@@ -96,7 +96,7 @@ impl Backend for MacBackend {
             // Load Guest Binary
             let bin_path = "apps/hello_world/guest.bin";
             if let Ok(code_data) = std::fs::read(bin_path) {
-                if code_data.len() > 0x10000 { panic!("Guest binary too large for Code Segment!"); }
+                if code_data.len() > 0x80000 { panic!("Guest binary too large for Code Segment (max 512KB)!"); }
                 
                 // Write code into Host memory (which backs the Guest RX region)
                 std::ptr::copy_nonoverlapping(code_data.as_ptr(), code_ptr, code_data.len());
