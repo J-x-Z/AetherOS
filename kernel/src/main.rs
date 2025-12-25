@@ -1,6 +1,7 @@
 mod backend;
 
 use backend::Backend;
+#[cfg(not(target_os = "android"))]
 use minifb::{Key, Window, WindowOptions};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -40,26 +41,32 @@ fn main() {
         backend_clone.run();
     });
 
-    let mut window = Window::new(
-        "AetherOS - Guest Display",
-        WIDTH,
-        HEIGHT,
-        WindowOptions::default(),
-    )
-    .unwrap_or_else(|e| {
-        panic!("{}", e);
-    });
+    #[cfg(not(target_os = "android"))]
+    {
+        let mut window = Window::new(
+            "AetherOS - Guest Display",
+            WIDTH,
+            HEIGHT,
+            WindowOptions::default(),
+        )
+        .unwrap_or_else(|e| {
+            panic!("{}", e);
+        });
 
-    // Limit to 60fps
-    window.limit_update_rate(Some(std::time::Duration::from_micros(16600)));
+        // Limit to 60fps
+        window.limit_update_rate(Some(std::time::Duration::from_micros(16600)));
 
-    while window.is_open() && !window.is_key_down(Key::Escape) {
-        // Unsafe access to the RAM buffer (which the VMM thread is writing to)
-        // This is a "racy" framebuffer, typical for simple emulators.
-        let fb_buffer = unsafe { backend.get_framebuffer(WIDTH, HEIGHT) };
-        
-        window
-            .update_with_buffer(fb_buffer, WIDTH, HEIGHT)
-            .unwrap();
+        while window.is_open() && !window.is_key_down(Key::Escape) {
+            let fb_buffer = unsafe { backend.get_framebuffer(WIDTH, HEIGHT) };
+            window.update_with_buffer(fb_buffer, WIDTH, HEIGHT).unwrap();
+        }
+    }
+    
+    #[cfg(target_os = "android")]
+    {
+        // Android Headless Loop (Logcat output only)
+        loop { 
+            thread::sleep(Duration::from_secs(1)); 
+        }
     }
 }
