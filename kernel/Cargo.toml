@@ -1,0 +1,12 @@
+[package]
+name = "aether-kernel"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+aether-abi = { path = "../abi" }
+libc = "0.2"
+minifb = "0.24"
+
+
+[build-dependencies]

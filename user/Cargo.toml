@@ -1,0 +1,10 @@
+[package]
+name = "aether-user"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+aether-abi = { path = "../abi" }
+
+[profile.release]
+panic = "abort"

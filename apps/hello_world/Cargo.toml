@@ -1,0 +1,12 @@
+[package]
+name = "hello_world"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+aether-user = { path = "../../user" }
+
+[profile.release]
+panic = "abort"
+opt-level = "z"
+lto = true
