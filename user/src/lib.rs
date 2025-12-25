@@ -3,6 +3,19 @@
 use core::arch::asm;
 use aether_abi::HyperCall;
 
+// Font and Console modules
+pub mod font;
+pub mod console;
+
+// Re-export console functions for convenience
+pub use console::{init as console_init, print as console_print, println as console_println, clear as console_clear, set_colors};
+
+// Framebuffer constants
+pub const FB_ADDR: usize = 0x100000;
+pub const SCREEN_WIDTH: usize = 640;
+pub const SCREEN_HEIGHT: usize = 480;
+
+/// Print via hypercall (for kernel-level debugging)
 pub fn print(msg: &str) {
     let ptr = msg.as_ptr();
     let len = msg.len();
@@ -21,6 +34,7 @@ pub fn print(msg: &str) {
     }
 }
 
+/// Exit the guest
 pub fn exit(code: u64) -> ! {
     unsafe {
         asm!(
@@ -34,29 +48,25 @@ pub fn exit(code: u64) -> ! {
     }
 }
 
-pub const FBI_ADDR: usize = 0x100000;
-pub const SCREEN_WIDTH: usize = 640;
-pub const SCREEN_HEIGHT: usize = 480;
-
-pub fn draw_pixel(x: usize, y: usize, color: u32) {
+/// Draw a single pixel (low-level)
+pub fn draw_pixel(x: usize, y: usize, r: u8, g: u8, b: u8) {
     if x >= SCREEN_WIDTH || y >= SCREEN_HEIGHT { return; }
+    let color = ((r as u32) << 16) | ((g as u32) << 8) | (b as u32);
     unsafe {
-        let ptr = (FBI_ADDR + (y * SCREEN_WIDTH + x) * 4) as *mut u32;
-        *ptr = color;
+        let ptr = (FB_ADDR + (y * SCREEN_WIDTH + x) * 4) as *mut u32;
+        ptr.write_volatile(color);
     }
 }
 
-pub fn fill_screen(color: u32) {
+/// Fill the entire screen with a color
+pub fn fill_screen(r: u8, g: u8, b: u8) {
+    let color = ((r as u32) << 16) | ((g as u32) << 8) | (b as u32);
     unsafe {
-        let ptr = FBI_ADDR as *mut u32;
+        let ptr = FB_ADDR as *mut u32;
         for i in 0..(SCREEN_WIDTH * SCREEN_HEIGHT) {
-            *ptr.add(i) = color;
+            ptr.add(i).write_volatile(color);
         }
     }
-}
-
-pub fn flush() {
-    // Optional: Call HVC to notify host (if we weren't polling)
 }
 
 #[macro_export]

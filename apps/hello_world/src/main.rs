@@ -1,26 +1,50 @@
 #![no_std]
 #![no_main]
 
-use aether_user::{print, exit, entry_point, draw_pixel, SCREEN_WIDTH, SCREEN_HEIGHT};
-
-entry_point!(main);
+use aether_user::{console_init, console_println, console_print, set_colors, entry_point};
 
 fn main() -> ! {
-    print("Hello from AetherOS Graphics!\n");
-    print("Drawing RGB Gradient...\n");
+    // Initialize the console (clears screen)
+    console_init();
     
-    // Draw Gradient
-    for y in 0..SCREEN_HEIGHT {
-        for x in 0..SCREEN_WIDTH {
-            let r = (x * 255 / SCREEN_WIDTH) as u32;
-            let g = (y * 255 / SCREEN_HEIGHT) as u32;
-            let b = 128;
-            let color = (r << 16) | (g << 8) | b;
-            draw_pixel(x, y, color);
-        }
+    // Print welcome message
+    console_println("========================================");
+    console_println("       Welcome to AetherOS v0.4.0       ");
+    console_println("========================================");
+    console_println("");
+    console_println("TTY Console initialized successfully!");
+    console_println("");
+    
+    // Demo: Change colors
+    set_colors(0, 255, 0, 0, 0, 0);  // Green text on black
+    console_println("[OK] Graphics subsystem ready");
+    
+    set_colors(255, 255, 0, 0, 0, 0);  // Yellow text
+    console_println("[INFO] Running on AetherOS Microkernel");
+    
+    set_colors(0, 255, 255, 0, 0, 0);  // Cyan text
+    console_println("[INFO] Platform: Universal (8 OS backends)");
+    
+    set_colors(255, 255, 255, 0, 0, 0);  // White text
+    console_println("");
+    console_println("This text is rendered directly to the");
+    console_println("framebuffer using an 8x16 VGA font.");
+    console_println("");
+    console_println("Supported features:");
+    console_println("  - 80x30 character display");
+    console_println("  - Automatic line wrapping");
+    console_println("  - Screen scrolling");
+    console_println("  - Foreground/background colors");
+    console_println("");
+    
+    set_colors(128, 128, 128, 0, 0, 0);  // Gray text
+    console_print("Guest is now idle. Press ESC to exit.");
+    
+    // Idle loop
+    loop {
+        // In future: poll for input events
+        unsafe { core::arch::asm!("wfe"); }
     }
-    
-    print("Done! Looping forever to keep window open.\n");
-    loop {}
-    // exit(0);
 }
+
+entry_point!(main);
