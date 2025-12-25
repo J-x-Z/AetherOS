@@ -22,6 +22,14 @@ pub use windows::WindowsBackend as CurrentBackend;
 pub use freebsd::FreeBsdBackend as CurrentBackend;
 
 
+#[cfg(target_os = "macos")]
+mod macos;
+
+#[cfg(any(target_os = "linux", target_os = "android"))]
 mod linux;
+
+#[cfg(target_os = "windows")]
 mod windows;
+
+#[cfg(target_os = "freebsd")]
 mod freebsd;
