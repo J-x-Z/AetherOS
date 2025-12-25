@@ -79,4 +79,19 @@ jobs:
       run: rustup target add aarch64-linux-android
     - name: Check Android Build
       run: |
+    - name: Check Android Build
+      run: |
         cargo check --target aarch64-linux-android -p aether-kernel
+
+  # 6. Build Kernel - FreeBSD (Check Only)
+  build-kernel-freebsd:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Run FreeBSD VM
+      uses: vmactions/freebsd-vm@v0
+      with:
+        usesh: true
+        prepare: pkg install -y rust
+        run: |
+          cargo check -p aether-kernel

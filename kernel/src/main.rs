@@ -1,7 +1,7 @@
 mod backend;
 
 use backend::Backend;
-#[cfg(not(target_os = "android"))]
+#[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 use minifb::{Key, Window, WindowOptions};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -41,7 +41,7 @@ fn main() {
         backend_clone.run();
     });
 
-    #[cfg(not(target_os = "android"))]
+    #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
     {
         let mut window = Window::new(
             "AetherOS - Guest Display",
@@ -62,7 +62,7 @@ fn main() {
         }
     }
     
-    #[cfg(target_os = "android")]
+    #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
     {
         // Android Headless Loop (Logcat output only)
         loop { 
