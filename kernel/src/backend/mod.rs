@@ -11,8 +11,9 @@ pub trait Backend: Sync + Send {
 #[cfg(target_os = "macos")]
 pub use macos::MacBackend as CurrentBackend;
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 pub use linux::LinuxBackend as CurrentBackend;
+
 
 #[cfg(target_os = "windows")]
 pub use windows::WindowsBackend as CurrentBackend;
