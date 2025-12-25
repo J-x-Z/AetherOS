@@ -1,73 +1,157 @@
 # AetherOS
 
-The Universal Rust Operating System.
-"Write Once, Run Everywhere" (macOS, Linux, Android, Windows).
+<p align="center">
+  <strong>🌐 The Universal Rust Platform</strong><br>
+  <em>Run Rust applications anywhere — from macOS to Android, Windows to FreeBSD</em>
+</p>
 
-## Project Structure
+<p align="center">
+  <img src="https://img.shields.io/badge/rust-1.70+-orange?logo=rust" alt="Rust">
+  <img src="https://img.shields.io/badge/platforms-8+-blue" alt="Platforms">
+  <img src="https://github.com/J-x-Z/AetherOS/actions/workflows/build.yml/badge.svg" alt="CI">
+  <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
+</p>
 
-### 1. `aether-kernel` (The Host)
-The ultra-lightweight Hypervisor.
-- **Backend-Agnostic**: Defines `trait Backend`.
-- **macOS Implementation**: Uses `Hypervisor.framework` (Apple Silicon).
-- **Goal**: Run `aether-abi` compatible binaries on any OS.
+---
 
-## 🌟 Current Capabilities (v0.3.0)
+## What is AetherOS?
 
-### 1. 🖥️ Graphics & UI
-*   **Hardware Window**: Opens a native 640x480 window on the Host.
-*   **Framebuffer**: Zero-copy shared memory graphics (Guest writes -> Host displays).
-*   **API**: `draw_pixel` support in User SDK.
+AetherOS is a **lightweight hypervisor-based microkernel** written in Rust. It allows you to run Rust `no_std` guest applications with **native performance** on any host operating system.
 
-### 2. ⚡ Core Virtualization
-*   **Hypervisor**: Native Apple Silicon support (`Hypervisor.framework`).
-*   **Performance**: Raw hardware virtualization (EL1 execution).
-*   **Memory**: 4MB RAM with flat RWX mapping (Stable boot).
+Think of it as: **Write once in Rust, run everywhere** — with direct hardware virtualization.
 
-### 3. 🔌 Universal ABI
-*   **Hypercalls**:
-    - `Print` (Debug logging).
-    - `Exit` (System shutdown).
-*   **Binary format**: Raw flat binary (`no_std`, layout agnostic).
+## ✨ Key Features
 
-### 4. 🧰 Developer Experience
-*   **SDK**: `aether-user` crate treats low-level HVC as standard Rust functions.
-*   **Monorepo**: Unified build system for Kernel, ABI, SDK, and Apps.
+| Feature | Description |
+|---------|-------------|
+| 🖥️ **Graphics Support** | 640×480 framebuffer with direct pixel drawing |
+| 🔧 **Universal ABI** | Hypercall-based communication between Guest and Host |
+| 🌍 **8 Platform Backends** | macOS, Linux, Windows, Android, FreeBSD, NetBSD, OpenBSD, DragonFlyBSD |
+| 🔒 **Memory Isolation** | Hardware-enforced VM separation via platform hypervisors |
+| 📦 **Modular Architecture** | Rust workspace with separated kernel, ABI, and user libraries |
 
-### 2. `aether-user` (The SDK)
-The "Standard Library" for Aether apps.
-- Hides the `HVC` assembly details.
-- Provides `print!`, `exit`, `File`, `Net` (future).
-- Usage: `use aether_user::{print, exit};`
+## 🏗️ Architecture
 
-### 3. `aether-abi` (The Interface)
-Shared definitions ensuring binary compatibility between Kernel and User.
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Host OS (Any)                        │
+├─────────────────────────────────────────────────────────┤
+│  AetherOS Kernel (aether-kernel)                        │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐  │
+│  │ macOS       │  │ Linux/KVM   │  │ Windows/WHP     │  │
+│  │ Hypervisor  │  │ Backend     │  │ Backend         │  │
+│  └─────────────┘  └─────────────┘  └─────────────────┘  │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐  │
+│  │ FreeBSD     │  │ NetBSD      │  │ OpenBSD         │  │
+│  │ bhyve       │  │ NVMM        │  │ vmm(4)          │  │
+│  └─────────────┘  └─────────────┘  └─────────────────┘  │
+├─────────────────────────────────────────────────────────┤
+│  Guest VM (aarch64-unknown-none)                        │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │ hello_world (Rust no_std application)           │    │
+│  │ Uses: aether-user SDK                           │    │
+│  └─────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────┘
+```
 
-### 4. `apps/`
-Example applications.
-- `hello_world`: A minimal `no_std` Rust app demonstrating the stack.
-
-## Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
-- Rust Nightly (for ASM features if needed, though mostly stable now).
-- macOS (Apple Silicon) for the current Kernel verification.
+- Rust toolchain (stable)
+- `aarch64-unknown-none` target: `rustup target add aarch64-unknown-none`
+- `cargo-binutils`: `cargo install cargo-binutils`
 
-### Build & Run
-1. **Build the Workspace**:
-   ```bash
-   # Build the Kernel
-   cargo build --release -p aether-kernel
-   # Sign Kernel (Required on macOS)
-   codesign --entitlements kernel/entitlements.plist --force -s - target/release/aether-kernel
-   
-   # Build the App
-   cargo build --release -p hello_world --target aarch64-unknown-none
-   # Extract Binary
-   rust-objcopy -O binary target/aarch64-unknown-none/release/hello_world apps/hello_world/guest.bin
-   ```
+### Build & Run (macOS)
 
-2. **Run**:
-   ```bash
-   cd kernel
-   ../target/release/aether-kernel
-   ```
+```bash
+# 1. Build the guest application
+cargo build --release -p hello_world --target aarch64-unknown-none
+rust-objcopy -O binary target/aarch64-unknown-none/release/hello_world apps/hello_world/guest.bin
+
+# 2. Build and sign the kernel
+cargo build --release -p aether-kernel
+codesign --entitlements kernel/entitlements.plist --force -s - target/release/aether-kernel
+
+# 3. Run!
+./target/release/aether-kernel
+```
+
+A window will appear displaying the guest's framebuffer output.
+
+## 📁 Project Structure
+
+```
+AetherOS/
+├── abi/                    # Shared ABI definitions (hypercall numbers)
+├── apps/
+│   └── hello_world/        # Example guest application
+├── kernel/
+│   ├── src/
+│   │   ├── main.rs         # Entry point
+│   │   └── backend/        # Platform-specific hypervisor implementations
+│   │       ├── macos.rs    # Apple Hypervisor.framework
+│   │       ├── linux.rs    # KVM (stub)
+│   │       ├── windows.rs  # Windows Hypervisor Platform (stub)
+│   │       ├── freebsd.rs  # bhyve (stub)
+│   │       ├── netbsd.rs   # NVMM (stub)
+│   │       ├── openbsd.rs  # vmm(4) (stub)
+│   │       └── dragonfly.rs# DragonFlyBSD VMM (stub)
+│   └── entitlements.plist  # macOS code signing entitlements
+├── user/                   # Guest SDK (aether-user)
+└── Cargo.toml              # Workspace definition
+```
+
+## 🖼️ Guest SDK (aether-user)
+
+Write guest applications using the provided SDK:
+
+```rust
+#![no_std]
+#![no_main]
+
+use aether_user::{print, draw_pixel, fill_screen, SCREEN_WIDTH, SCREEN_HEIGHT};
+
+#[no_mangle]
+pub extern "C" fn _start() -> ! {
+    print("Hello from AetherOS Guest!");
+    
+    // Draw a gradient
+    for y in 0..SCREEN_HEIGHT {
+        for x in 0..SCREEN_WIDTH {
+            let r = (x * 255 / SCREEN_WIDTH) as u8;
+            let g = (y * 255 / SCREEN_HEIGHT) as u8;
+            draw_pixel(x, y, r, g, 128);
+        }
+    }
+    
+    loop {}
+}
+```
+
+## 🔮 Roadmap
+
+- [x] Graphics Subsystem (Framebuffer)
+- [x] macOS Backend (Hypervisor.framework)
+- [x] Multi-platform CI (8 targets)
+- [ ] Linux Backend (KVM implementation)
+- [ ] Windows Backend (WHP implementation)
+- [ ] Input Handling (Keyboard/Mouse)
+- [ ] WASM Runtime Integration
+- [ ] Android Native Hardware Support
+- [ ] Filesystem Hypercalls
+
+## 📚 Documentation
+
+- [Android Architecture](./android_architecture.md) - Native hardware integration strategy
+- [Ecosystem Bridge](./ecosystem_bridge.md) - Running existing software on AetherOS
+- [WASM Integration](./wasm_integration_plan.md) - WebAssembly runtime plans
+
+## 📄 License
+
+MIT License - See [LICENSE](./LICENSE) for details.
+
+---
+
+<p align="center">
+  <em>Built with ❤️ and Rust</em>
+</p>
