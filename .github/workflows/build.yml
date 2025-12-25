@@ -79,8 +79,6 @@ jobs:
       run: rustup target add aarch64-linux-android
     - name: Check Android Build
       run: |
-    - name: Check Android Build
-      run: |
         cargo check --target aarch64-linux-android -p aether-kernel
 
   # 6. Build Kernel - FreeBSD (Check Only)
