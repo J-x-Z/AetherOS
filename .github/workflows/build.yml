@@ -34,7 +34,7 @@ jobs:
 
   # 2. Build Kernel - macOS (M1/M2)
   build-kernel-macos:
-    runs-on: macos-14-xlarge # M1 Runner
+    runs-on: macos-14 # Apple Silicon M1 (Free Tier)
     needs: build-guest
     steps:
     - uses: actions/checkout@v4
