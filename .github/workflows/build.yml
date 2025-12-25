@@ -14,7 +14,7 @@ jobs:
   build-guest:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Install Rust Nightly (for asm if needed, though stability is improved)
       uses: dtolnay/rust-toolchain@stable
       with:
@@ -27,7 +27,7 @@ jobs:
         cargo build --release -p hello_world --target aarch64-unknown-none
         rust-objcopy -O binary target/aarch64-unknown-none/release/hello_world apps/hello_world/guest.bin
     - name: Upload Guest Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: guest-binary
         path: apps/hello_world/guest.bin
@@ -39,7 +39,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Download Guest
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: guest-binary
         path: apps/hello_world
