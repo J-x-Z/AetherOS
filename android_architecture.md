@@ -50,6 +50,20 @@ In the **Android Native** version:
 - Desktop: `minifb` events.
 - Android: Parse `/dev/input/event0` (Touchscreen) raw byte streams directly in the Kernel thread, converting them to ABI events for the Guest.
 
+## 5. The "Bionic" Challenge & Driver Blobs
+You raised a critical point: Vendor drivers (GPU, WiFi) are compiled against `bionic` (Android libc) and often present as proprietary HAL modules.
+
+### Strategy A: Being Native (The `libhybris` Route)
+Since AetherOS compiles to `aarch64-linux-android`, it **native links** against Bionic!
+- We don't strictly need `libhybris` if we stay within the Android Linker namespace.
+- **Challenge**: Vendor drivers speak **HIDL/AIDL**. We would need to implement a "Rust HwBinder" to talk to the GPU HAL.
+
+### Strategy B: The `libhybris` Bridge
+If we want to run AetherOS on a standard Linux kernel (bypassing Android Init entirely), we need `libhybris` to load the Android-specific `.so` blobs (e.g., `libGLESv2_adreno.so`) inside a glibc/musl environment.
+- **Precedent**: SailfishOS and Ubuntu Touch use this.
+- **Recommendation**: For the "Android Replacement" goal, we should stick to **Strategy A**: run *as* an Android executable (using Bionic), but replace the upper Java Framework (SurfaceFlinger/Zygote).
+
 ## Summary
 The current `minifb` implementation is a "Simulator" for development.
-The Android target will evolve into a "Driver" that talks to silicon, exactly as you described.
+The Android target will evolve into a "Driver" that talks to silicon, potentially using `libhybris` or native HIDL to bridge proprietary vendor blobs.
+
