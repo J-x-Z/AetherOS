@@ -1,3 +1,5 @@
-[build]
-target = "aarch64-unknown-none"
-rustflags = ["-C", "link-arg=-Tapps/hello_world/layout.ld", "-C", "link-arg=-n"]
+[target.aarch64-unknown-none]
+rustflags = [
+  "-C", "link-arg=-T/Users/jiaxi/.gemini/antigravity/scratch/AetherOS/apps/hello_world/layout.ld",
+  "-C", "link-arg=-n"
+]

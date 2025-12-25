@@ -1,48 +1,52 @@
 #![no_std]
 #![no_main]
 
-use aether_user::{console_init, console_println, console_print, set_colors, entry_point};
+use aether_user::{print, fill_screen, draw_pixel, console_init, console_println, set_colors, entry_point, SCREEN_WIDTH};
 
 fn main() -> ! {
-    // Initialize the console (clears screen)
+    // Test 1: Print to console (HVC hypercall)
+    print("Guest: Starting TTY Console Test\n");
+    
+    // Test 2: Fill screen with dark blue background
+    fill_screen(0, 0, 64);
+    
+    // Test 3: Draw colored bars
+    for x in 0..SCREEN_WIDTH {
+        let color_index = x / 80;
+        let (r, g, b) = match color_index {
+            0 => (255, 0, 0),    // Red
+            1 => (0, 255, 0),    // Green
+            2 => (0, 0, 255),    // Blue
+            3 => (255, 255, 0),  // Yellow
+            4 => (255, 0, 255),  // Magenta
+            5 => (0, 255, 255),  // Cyan
+            6 => (255, 255, 255),// White
+            _ => (128, 128, 128),// Gray
+        };
+        for y in 100..200 {
+            draw_pixel(x, y, r, g, b);
+        }
+    }
+    
+    // Test 4: Initialize TTY console and print text
     console_init();
     
-    // Print welcome message
+    set_colors(0, 255, 0, 0, 0, 64);  // Green on dark blue
     console_println("========================================");
     console_println("       Welcome to AetherOS v0.4.0       ");
     console_println("========================================");
     console_println("");
-    console_println("TTY Console initialized successfully!");
-    console_println("");
     
-    // Demo: Change colors
-    set_colors(0, 255, 0, 0, 0, 0);  // Green text on black
-    console_println("[OK] Graphics subsystem ready");
-    
-    set_colors(255, 255, 0, 0, 0, 0);  // Yellow text
-    console_println("[INFO] Running on AetherOS Microkernel");
-    
-    set_colors(0, 255, 255, 0, 0, 0);  // Cyan text
-    console_println("[INFO] Platform: Universal (8 OS backends)");
-    
-    set_colors(255, 255, 255, 0, 0, 0);  // White text
+    set_colors(255, 255, 255, 0, 0, 64);  // White
+    console_println("TTY Console is now working!");
     console_println("");
     console_println("This text is rendered directly to the");
     console_println("framebuffer using an 8x16 VGA font.");
-    console_println("");
-    console_println("Supported features:");
-    console_println("  - 80x30 character display");
-    console_println("  - Automatic line wrapping");
-    console_println("  - Screen scrolling");
-    console_println("  - Foreground/background colors");
-    console_println("");
     
-    set_colors(128, 128, 128, 0, 0, 0);  // Gray text
-    console_print("Guest is now idle. Press ESC to exit.");
+    print("Guest: TTY Console Test Complete!\n");
     
     // Idle loop
     loop {
-        // In future: poll for input events
         unsafe { core::arch::asm!("wfe"); }
     }
 }

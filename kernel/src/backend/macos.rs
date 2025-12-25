@@ -27,6 +27,7 @@ const HV_REG_X0: u32 = 0;
 const HV_REG_X1: u32 = 1;
 const HV_REG_X8: u32 = 8;
 const HV_REG_PC: u32 = 32;
+const HV_REG_CPSR: u32 = 34;  // PSTATE/CPSR register
 const HV_SYS_REG_SP_EL1: u16 = 0xe208;
 const HV_EXIT_REASON_EXCEPTION: u32 = 1;
 
@@ -120,13 +121,29 @@ impl Backend for MacBackend {
             
             // Init Registers
             hv_vcpu_set_reg(vcpu, HV_REG_PC, LOAD_ADDR);
-            hv_vcpu_set_sys_reg(vcpu, HV_SYS_REG_SP_EL1, 0xFFFF); 
-            hv_vcpu_set_reg(vcpu, 2, 0x3c5); // PSTATE
-            hv_vcpu_set_sys_reg(vcpu, 0xc080, 0); // SCTLR_EL1 = 0
+            // Set CPSR to EL1h (0x3c4) - CRITICAL for HVC to trap to EL2!
+            // Without this, vCPU runs in wrong exception level
+            hv_vcpu_set_reg(vcpu, HV_REG_CPSR, 0x3c4);
+            // Set SP to top of RAM (4MB)
+            hv_vcpu_set_sys_reg(vcpu, HV_SYS_REG_SP_EL1, 0x3FF000);
+            hv_vcpu_set_sys_reg(vcpu, 0xc080, 0); // SCTLR_EL1 = 0 (MMU off)
             
+            let mut iter_count = 0u64;
+            println!("[Debug] About to enter vCPU loop...");
+            use std::io::Write;
+            std::io::stdout().flush().unwrap();
             loop {
+                if iter_count == 0 {
+                    println!("[Debug] Calling hv_vcpu_run for first time...");
+                    std::io::stdout().flush().unwrap();
+                }
                 hv_vcpu_run(vcpu);
+                iter_count += 1;
                 let reason = (*exit_info).reason;
+                
+                // Debug: print every exit
+                println!("[Debug] vCPU exit #{}, reason={}", iter_count, reason);
+                std::io::stdout().flush().unwrap();
                 
                 if reason == HV_EXIT_REASON_EXCEPTION {
                     let ec = ((*exit_info).exception.syndrome >> 26) & 0x3F;
