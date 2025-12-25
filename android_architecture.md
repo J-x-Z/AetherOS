@@ -1,0 +1,55 @@
+# AetherOS on Android: Native Hardware Architecture
+
+You are absolutely correct. On Windows/macOS, we run as a "Guest Application" inside a Window (`minifb`). But on Android (specifically as an OS replacement or High-Privilege Service), AetherOS operates differently.
+
+## 1. Execution Context (PID 1 vs HAL)
+Instead of running on top of a desktop compositor, AetherOS on Android runs in one of two modes:
+
+### Mode A: The "Hypervisor Shim" (Root/System)
+- **Role**: AetherOS replaces the Android Runtime (ART/Zygote).
+- **Graphics**: It takes control of the **Hardware Composer (HWC)** or `DRM/KMS` directly.
+- **Input**: Reads directly from `/dev/input/event*`.
+
+### Mode B: Bare Metal (future)
+- **Role**: AetherOS *is* the Kernel (using the Linux backend as a Type-1 Hypervisor shim).
+
+## 2. Removing the Window System
+In `kernel/src/main.rs`, we already gated `minifb` out for Android. The next step is replacing the "Sleep Loop" with a **Direct Rendering Backend**.
+
+### Proposed Architecture for `backend/android.rs`
+
+```rust
+pub struct AndroidBackend {
+    // Direct access to GPU/Display hardware
+    drm_device: std::fs::File, 
+    framebuffer_map: *mut u8,
+}
+
+impl Backend for AndroidBackend {
+    fn new() -> Self {
+        // 1. Open /dev/dri/card0 (Direct Rendering Manager)
+        // 2. Perform IOCTLs to set video mode (KMS)
+        // 3. Map the "Dumb Buffer" (Video RAM) to host memory
+        // 4. Return this pointer as the "Framebuffer"
+    }
+
+    unsafe fn get_framebuffer(&self) -> &[u32] {
+        // Return pointer to ACTUAL Video RAM, not a heap buffer
+    }
+}
+```
+
+## 3. Zero-Copy Performance
+In the Desktop version, we copy Guest RAM -> Host RAM -> Window Texture.
+In the **Android Native** version:
+1.  We configure the Display Controller (CRTC) to scan out **directly** from the Guest's Physical RAM address (if using IOMMU/SMMU).
+2.  Or simpler: The Guest writes to a memory region that IS the mapped Video Output.
+3.  **Result**: 0% CPU usage for display. Pure hardware scan-out.
+
+## 4. Input Handling
+- Desktop: `minifb` events.
+- Android: Parse `/dev/input/event0` (Touchscreen) raw byte streams directly in the Kernel thread, converting them to ABI events for the Guest.
+
+## Summary
+The current `minifb` implementation is a "Simulator" for development.
+The Android target will evolve into a "Driver" that talks to silicon, exactly as you described.
