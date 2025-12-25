@@ -17,19 +17,16 @@ pub const SCREEN_HEIGHT: usize = 480;
 
 /// Print via hypercall (for kernel-level debugging)
 pub fn print(msg: &str) {
-    let ptr = msg.as_ptr();
-    let len = msg.len();
+    let ptr = msg.as_ptr() as u64;
+    let len = msg.len() as u64;
     
     unsafe {
         asm!(
-            "mov x0, {0}",
-            "mov x1, {1}",
-            "mov x8, {2}",
             "hvc #0",
-            in(reg) ptr,
-            in(reg) len,
-            const HyperCall::Print as u64,
-            options(nostack)
+            in("x0") ptr,
+            in("x1") len,
+            in("x8") HyperCall::Print as u64,
+            options(nostack, nomem)
         );
     }
 }

@@ -46,7 +46,7 @@ struct HvVcpuExitException {
 
 // Memory Layout
 const RAM_SIZE: usize = 0x400000; // 4MB
-const LOAD_ADDR: u64 = 0x10000;
+const LOAD_ADDR: u64 = 0x0;  // Guest code at start of RAM (simpler layout)
 const FB_ADDR: u64 = 0x100000; // Place Framebuffer at 1MB mark
 
 pub struct MacBackend {
@@ -99,9 +99,9 @@ impl Backend for MacBackend {
             if let Ok(code_data) = std::fs::read(bin_path) {
                 if code_data.len() > 0x80000 { panic!("Guest binary too large for Code Segment (max 512KB)!"); }
                 
-                // Write code into Host memory (which backs the Guest RX region)
-                std::ptr::copy_nonoverlapping(code_data.as_ptr(), code_ptr, code_data.len());
-                sys_icache_invalidate(code_ptr as *const c_void, code_data.len());
+                // Write code into Host memory at address 0 (simpler layout)
+                std::ptr::copy_nonoverlapping(code_data.as_ptr(), mem, code_data.len());
+                sys_icache_invalidate(mem as *const c_void, code_data.len());
                 
                 println!("[Aether::MacBackend] Loaded guest: {} bytes", code_data.len());
             } else {
@@ -128,6 +128,11 @@ impl Backend for MacBackend {
             hv_vcpu_set_sys_reg(vcpu, HV_SYS_REG_SP_EL1, 0x3FF000);
             hv_vcpu_set_sys_reg(vcpu, 0xc080, 0); // SCTLR_EL1 = 0 (MMU off)
             
+            // Debug: verify memory content at 0x0
+            let first_instr = *(self.mem as *const u32);
+            let second_instr = *(self.mem.add(4) as *const u32);
+            println!("[Debug] Memory at 0x0: 0x{:08x} 0x{:08x}", first_instr, second_instr);
+            
             let mut iter_count = 0u64;
             println!("[Debug] About to enter vCPU loop...");
             use std::io::Write;
@@ -146,10 +151,19 @@ impl Backend for MacBackend {
                 std::io::stdout().flush().unwrap();
                 
                 if reason == HV_EXIT_REASON_EXCEPTION {
-                    let ec = ((*exit_info).exception.syndrome >> 26) & 0x3F;
+                    let syndrome = (*exit_info).exception.syndrome;
+                    let ec = (syndrome >> 26) & 0x3F;
+                    let iss = syndrome & 0x1FFFFFF;
+                    let mut pc_val: u64 = 0;
+                    hv_vcpu_get_reg(vcpu, HV_REG_PC, &mut pc_val);
+                    println!("[Debug] Exception: EC=0x{:x}, ISS=0x{:x}, PC=0x{:x}, Syndrome=0x{:x}", ec, iss, pc_val, syndrome);
+                    
                     if ec == 0x16 { // HVC
                         let mut x8: u64 = 0;
+                        let mut pc: u64 = 0;
                         hv_vcpu_get_reg(vcpu, HV_REG_X8, &mut x8);
+                        hv_vcpu_get_reg(vcpu, HV_REG_PC, &mut pc);
+                        println!("[Debug] HVC from PC=0x{:x}, x8={}", pc, x8);
                         
                         if x8 == 0 { // Print
                            let mut gpa: u64 = 0; 
@@ -157,11 +171,22 @@ impl Backend for MacBackend {
                            hv_vcpu_get_reg(vcpu, HV_REG_X0, &mut gpa);
                            hv_vcpu_get_reg(vcpu, HV_REG_X1, &mut len);
                            
-                           if gpa < RAM_SIZE as u64 {
+                           // Debug: dump all registers
+                           println!("[Debug] Register dump:");
+                           for i in 0u32..10 {
+                               let mut val: u64 = 0;
+                               hv_vcpu_get_reg(vcpu, i, &mut val);
+                               print!("  x{}: 0x{:x}", i, val);
+                           }
+                           println!();
+                           std::io::stdout().flush().unwrap();
+                           
+                           if gpa < RAM_SIZE as u64 && len < 1000 && len > 0 {
                                let ptr = self.mem.add(gpa as usize);
                                let slice = std::slice::from_raw_parts(ptr, len as usize);
                                let s = String::from_utf8_lossy(slice);
                                print!("[Guest] {}", s);
+                               std::io::stdout().flush().unwrap();
                            }
                            hv_vcpu_set_reg(vcpu, HV_REG_X0, 0);
                         } else if x8 == 1 { // Exit
