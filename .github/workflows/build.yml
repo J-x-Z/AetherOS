@@ -24,9 +24,8 @@ jobs:
       run: cargo install cargo-binutils
     - name: Build Guest
       run: |
-        cd apps/hello_world
-        cargo build --release --target aarch64-unknown-none
-        rust-objcopy -O binary ../../target/aarch64-unknown-none/release/hello_world guest.bin
+        cargo build --release -p hello_world --target aarch64-unknown-none
+        rust-objcopy -O binary target/aarch64-unknown-none/release/hello_world apps/hello_world/guest.bin
     - name: Upload Guest Artifact
       uses: actions/upload-artifact@v3
       with:
@@ -46,12 +45,10 @@ jobs:
         path: apps/hello_world
     - name: Build Kernel
       run: |
-        cd kernel
-        cargo build --release
+        cargo build --release -p aether-kernel
     - name: Sign Code
       run: |
-        cd kernel
-        codesign --entitlements entitlements.plist --force -s - ../target/release/aether-kernel
+        codesign --entitlements kernel/entitlements.plist --force -s - target/release/aether-kernel
         
   # 3. Build Kernel - Linux (Check Only)
   build-kernel-linux:
@@ -59,9 +56,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Install Dependencies
-      run: sudo apt-get update && sudo apt-get install -y libxkbcommon-dev libwayland-cursor0 libwayland-egl1
+      run: sudo apt-get update && sudo apt-get install -y libxkbcommon-dev libwayland-cursor0 libwayland-egl1 libx11-dev libxcursor-dev libxi-dev libxrandr-dev
     - name: Check Linux Build
       run: |
-        cd kernel
-        # We don't have kvm-ioctls implemented yet, but we verify it compiles
-        cargo check --target x86_64-unknown-linux-gnu
+        cargo check --target x86_64-unknown-linux-gnu -p aether-kernel
