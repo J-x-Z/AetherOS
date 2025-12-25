@@ -6,6 +6,8 @@ pub trait Backend: Sync + Send {
     unsafe fn get_framebuffer(&self, width: usize, height: usize) -> &[u32];
 }
 
+// ===== Platform-specific module declarations =====
+
 #[cfg(target_os = "macos")]
 mod macos;
 
@@ -18,6 +20,17 @@ mod windows;
 #[cfg(target_os = "freebsd")]
 mod freebsd;
 
+#[cfg(target_os = "openbsd")]
+mod openbsd;
+
+#[cfg(target_os = "netbsd")]
+mod netbsd;
+
+#[cfg(target_os = "dragonfly")]
+mod dragonfly;
+
+// ===== Platform-specific backend exports =====
+
 #[cfg(target_os = "macos")]
 pub use macos::MacBackend as CurrentBackend;
 
@@ -29,3 +42,12 @@ pub use windows::WindowsBackend as CurrentBackend;
 
 #[cfg(target_os = "freebsd")]
 pub use freebsd::FreeBsdBackend as CurrentBackend;
+
+#[cfg(target_os = "openbsd")]
+pub use openbsd::OpenBsdBackend as CurrentBackend;
+
+#[cfg(target_os = "netbsd")]
+pub use netbsd::NetBsdBackend as CurrentBackend;
+
+#[cfg(target_os = "dragonfly")]
+pub use dragonfly::DragonFlyBackend as CurrentBackend;
