@@ -56,6 +56,7 @@ fn main() {
         // Limit to 60fps
         window.limit_update_rate(Some(std::time::Duration::from_micros(16600)));
 
+        let mut frame_count = 0;
         while window.is_open() && !window.is_key_down(Key::Escape) {
             let fb_buffer = unsafe { backend.get_framebuffer(WIDTH, HEIGHT) };
             window.update_with_buffer(fb_buffer, WIDTH, HEIGHT).unwrap();

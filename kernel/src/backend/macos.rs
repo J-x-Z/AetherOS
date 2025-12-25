@@ -138,48 +138,25 @@ impl Backend for MacBackend {
             use std::io::Write;
             std::io::stdout().flush().unwrap();
             loop {
-                if iter_count == 0 {
-                    println!("[Debug] Calling hv_vcpu_run for first time...");
-                    std::io::stdout().flush().unwrap();
-                }
                 hv_vcpu_run(vcpu);
                 iter_count += 1;
                 let reason = (*exit_info).reason;
                 
                 // Debug: print every exit
-                println!("[Debug] vCPU exit #{}, reason={}", iter_count, reason);
-                std::io::stdout().flush().unwrap();
-                
+                // println!("[Debug] vCPU exit #{}, reason={}", iter_count, reason);
                 if reason == HV_EXIT_REASON_EXCEPTION {
                     let syndrome = (*exit_info).exception.syndrome;
                     let ec = (syndrome >> 26) & 0x3F;
-                    let iss = syndrome & 0x1FFFFFF;
-                    let mut pc_val: u64 = 0;
-                    hv_vcpu_get_reg(vcpu, HV_REG_PC, &mut pc_val);
-                    println!("[Debug] Exception: EC=0x{:x}, ISS=0x{:x}, PC=0x{:x}, Syndrome=0x{:x}", ec, iss, pc_val, syndrome);
                     
                     if ec == 0x16 { // HVC
                         let mut x8: u64 = 0;
-                        let mut pc: u64 = 0;
                         hv_vcpu_get_reg(vcpu, HV_REG_X8, &mut x8);
-                        hv_vcpu_get_reg(vcpu, HV_REG_PC, &mut pc);
-                        println!("[Debug] HVC from PC=0x{:x}, x8={}", pc, x8);
                         
                         if x8 == 0 { // Print
                            let mut gpa: u64 = 0; 
                            let mut len: u64 = 0;
                            hv_vcpu_get_reg(vcpu, HV_REG_X0, &mut gpa);
                            hv_vcpu_get_reg(vcpu, HV_REG_X1, &mut len);
-                           
-                           // Debug: dump all registers
-                           println!("[Debug] Register dump:");
-                           for i in 0u32..10 {
-                               let mut val: u64 = 0;
-                               hv_vcpu_get_reg(vcpu, i, &mut val);
-                               print!("  x{}: 0x{:x}", i, val);
-                           }
-                           println!();
-                           std::io::stdout().flush().unwrap();
                            
                            if gpa < RAM_SIZE as u64 && len < 1000 && len > 0 {
                                let ptr = self.mem.add(gpa as usize);
@@ -219,3 +196,5 @@ impl Backend for MacBackend {
         std::slice::from_raw_parts(ptr, width * height)
     }
 }
+
+
