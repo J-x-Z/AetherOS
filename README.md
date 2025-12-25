@@ -130,15 +130,34 @@ pub extern "C" fn _start() -> ! {
 
 ## 🔮 Roadmap
 
+See [ROADMAP.md](./ROADMAP.md) for detailed development plan.
+
+### Phase 1: Core (Current)
 - [x] Graphics Subsystem (Framebuffer)
 - [x] macOS Backend (Hypervisor.framework)
 - [x] Multi-platform CI (8 targets)
-- [ ] Linux Backend (KVM implementation)
-- [ ] Windows Backend (WHP implementation)
-- [ ] Input Handling (Keyboard/Mouse)
-- [ ] WASM Runtime Integration
-- [ ] Android Native Hardware Support
-- [ ] Filesystem Hypercalls
+- [ ] **TTY Console** - Text rendering on screen
+- [ ] **Input Handling** - Keyboard/Mouse events
+
+### Phase 2: Backends
+- [ ] Linux KVM implementation
+- [ ] Windows WHP implementation
+- [ ] BSD family implementations
+
+### Phase 3: Ecosystem
+- [ ] WASM Runtime integration
+- [ ] Linux ABI compatibility layer
+- [ ] Networking (VirtIO-net)
+
+### Phase 4: Android
+- [ ] DRM/KMS direct rendering
+- [ ] SELinux policy & init.rc service
+
+### Phase 5: Hybrid Kernel (Future)
+- [ ] UEFI bootloader
+- [ ] Bare metal kernel
+- [ ] Hardware drivers
+
 
 ## 📚 Documentation
 
