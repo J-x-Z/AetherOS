@@ -1,4 +1,0 @@
-[toolchain]
-channel = "nightly-aarch64-apple-darwin"
-components = [ "rust-src", "rust-std", "llvm-tools-preview" ]
-targets = [ "x86_64-unknown-uefi", "aarch64-unknown-uefi" ]
