@@ -359,8 +359,6 @@ impl Backend for LinuxBackend {
         {
             self.inner.run();
         }
-
-        #[cfg(not(target_os = "linux"))]
     }
     
     unsafe fn get_framebuffer(&self, width: usize, height: usize) -> &[u32] {
@@ -375,8 +373,6 @@ impl Backend for LinuxBackend {
             let ptr = self.inner.get_mem().add(FB_ADDR) as *const u32;
             std::slice::from_raw_parts(ptr, width * height)
         }
-
-        #[cfg(not(target_os = "linux"))]
     }
     
     fn inject_key(&self, c: char) {
