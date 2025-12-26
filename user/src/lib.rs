@@ -72,6 +72,13 @@ pub fn exit(code: u64) -> ! {
             options(noreturn)
         );
     }
+    
+    // Fallback for other platforms (e.g., WASM)
+    #[cfg(not(any(target_arch = "aarch64", target_arch = "x86_64")))]
+    {
+        let _ = code;
+        loop {}
+    }
 }
 
 /// Helper to get dynamic FB address
