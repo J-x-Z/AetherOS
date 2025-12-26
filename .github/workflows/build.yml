@@ -28,7 +28,12 @@ jobs:
         cd apps/hello_world
         RUSTFLAGS="-C link-arg=-T$(pwd)/layout.ld -C link-arg=-n" cargo build --release --target aarch64-unknown-none
         cd ../..
-        rust-objcopy -O binary target/aarch64-unknown-none/release/hello_world apps/hello_world/guest.bin
+        rust-objcopy -O binary target/aarch64-unknown-none/release/hello_world apps/hello_world/guest-aarch64.bin
+    - name: Upload Guest Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: guest-binary
+        path: apps/hello_world/guest-aarch64.bin
     
     # WASM App
     - name: Add WASM Target
@@ -39,26 +44,44 @@ jobs:
   # 2. Build AetherOS Stack - macOS
   build-aetheros-macos:
     runs-on: macos-14
+    needs: build-guests
     steps:
     - uses: actions/checkout@v4
+    - name: Download Guest
+      uses: actions/download-artifact@v4
+      with:
+        name: guest-binary
+        path: apps/hello_world
     - name: Build AetherOS (macOS)
       run: cargo build --release -p aetheros
 
   # 3. Build AetherOS Stack - Linux
   build-aetheros-linux:
     runs-on: ubuntu-latest
+    needs: build-guests
     steps:
     - uses: actions/checkout@v4
     - name: Install Dependencies
       run: sudo apt-get update && sudo apt-get install -y libxkbcommon-dev libwayland-cursor0 libwayland-egl1 libx11-dev libxcursor-dev libxi-dev libxrandr-dev
+    - name: Download Guest
+      uses: actions/download-artifact@v4
+      with:
+        name: guest-binary
+        path: apps/hello_world
     - name: Build AetherOS (Linux)
       run: cargo build --release -p aetheros --verbose
 
   # 4. Build AetherOS Stack - Windows
   build-aetheros-windows:
     runs-on: windows-latest
+    needs: build-guests
     steps:
     - uses: actions/checkout@v4
+    - name: Download Guest
+      uses: actions/download-artifact@v4
+      with:
+        name: guest-binary
+        path: apps/hello_world
     - name: Build AetherOS (Windows)
       run: cargo check --release -p aetheros
 
