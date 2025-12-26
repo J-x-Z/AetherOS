@@ -15,8 +15,11 @@ pub trait Backend: Sync + Send {
 #[cfg(target_os = "macos")]
 mod macos;
 
-#[cfg(any(target_os = "linux", target_os = "android"))]
+#[cfg(target_os = "linux")]
 mod linux;
+
+#[cfg(target_os = "android")]
+mod android;
 
 #[cfg(target_os = "windows")]
 mod windows;
@@ -38,8 +41,11 @@ mod dragonfly;
 #[cfg(target_os = "macos")]
 pub use macos::MacBackend as CurrentBackend;
 
-#[cfg(any(target_os = "linux", target_os = "android"))]
+#[cfg(target_os = "linux")]
 pub use linux::LinuxBackend as CurrentBackend;
+
+#[cfg(target_os = "android")]
+pub use android::AndroidBackend as CurrentBackend;
 
 #[cfg(target_os = "windows")]
 pub use windows::WindowsBackend as CurrentBackend;

@@ -19,4 +19,8 @@ kvm-bindings = "0.10"
 minifb = "0.27"
 windows = { version = "0.58", features = ["Win32_System_Hypervisor", "Win32_Foundation"] }
 
+[target.'cfg(target_os = "android")'.dependencies]
+# Android uses KVM too but different bindings, stub for now
+libc = "0.2"
+
 [build-dependencies]
