@@ -7,11 +7,14 @@ use super::Backend;
 
 pub struct AndroidBackend;
 
-impl Backend for AndroidBackend {
-    fn new() -> Self {
+impl AndroidBackend {
+    pub fn new() -> Self {
         println!("[Aether::AndroidBackend] AVF backend not yet implemented");
         AndroidBackend
     }
+}
+
+impl Backend for AndroidBackend {
     
     fn name(&self) -> &str {
         "Android AVF (Stub)"

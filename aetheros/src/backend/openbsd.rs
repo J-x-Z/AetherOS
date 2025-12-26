@@ -2,10 +2,13 @@ use super::Backend;
 
 pub struct OpenBsdBackend;
 
-impl Backend for OpenBsdBackend {
-    fn new() -> Self {
+impl OpenBsdBackend {
+    pub fn new() -> Self {
         panic!("OpenBSD Backend (vmm/pledge) not implemented yet");
     }
+}
+
+impl Backend for OpenBsdBackend {
     
     fn name(&self) -> &str {
         "OpenBSD vmm"

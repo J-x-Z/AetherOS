@@ -2,10 +2,13 @@ use super::Backend;
 
 pub struct FreeBsdBackend;
 
-impl Backend for FreeBsdBackend {
-    fn new() -> Self {
+impl FreeBsdBackend {
+    pub fn new() -> Self {
         panic!("FreeBSD Backend (bhyve) not implemented yet");
     }
+}
+
+impl Backend for FreeBsdBackend {
     
     fn name(&self) -> &str {
         "bhyve"

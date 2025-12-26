@@ -2,10 +2,13 @@ use super::Backend;
 
 pub struct NetBsdBackend;
 
-impl Backend for NetBsdBackend {
-    fn new() -> Self {
+impl NetBsdBackend {
+    pub fn new() -> Self {
         panic!("NetBSD Backend (nvmm) not implemented yet");
     }
+}
+
+impl Backend for NetBsdBackend {
     
     fn name(&self) -> &str {
         "NetBSD NVMM"

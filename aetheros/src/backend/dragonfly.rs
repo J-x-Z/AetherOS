@@ -2,10 +2,13 @@ use super::Backend;
 
 pub struct DragonFlyBackend;
 
-impl Backend for DragonFlyBackend {
-    fn new() -> Self {
-        panic!("DragonFlyBSD Backend not implemented yet");
+impl DragonFlyBackend {
+    pub fn new() -> Self {
+        panic!("DragonFly BSD Backend not implemented yet");
     }
+}
+
+impl Backend for DragonFlyBackend {
     
     fn name(&self) -> &str {
         "DragonFlyBSD VMM"
