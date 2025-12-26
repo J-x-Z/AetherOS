@@ -102,6 +102,16 @@ impl Backend for WindowsBackend {
             backend
         }
     }
+    
+    // Fallback for non-Windows platforms
+    #[cfg(not(target_os = "windows"))]
+    fn new() -> Self {
+        panic!("Windows Backend not available on this platform");
+    }
+    
+    fn name(&self) -> &str {
+        "WHV (Windows)"
+    }
 }
 
 // Helper implementation for Windows-specific methods (not part of Backend trait)
@@ -191,21 +201,8 @@ impl WindowsBackend {
             &reg_values as *const _ as *const _,
         ).expect("Failed to set registers");
     }
-}
 
-// Continue Backend trait implementation
-impl Backend for WindowsBackend {
-    // Fallback for non-Windows platforms
-    #[cfg(not(target_os = "windows"))]
-    fn new() -> Self {
-        panic!("Windows Backend not available on this platform");
-    }
-    
-    fn name(&self) -> &str {
-        "WHV (Windows)"
-    }
-    
-    #[cfg(target_os = "windows")]
+    // Remaining trait methods (run, get_framebuffer, inject_key are below)
     fn run(&self) {
         println!("[Aether::WindowsBackend] Starting vCPU Loop...");
         
