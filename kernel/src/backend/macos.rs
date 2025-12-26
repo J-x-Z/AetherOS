@@ -45,9 +45,10 @@ struct HvVcpuExitException {
 }
 
 // Memory Layout
-const RAM_SIZE: usize = 0x400000; // 4MB
+const RAM_SIZE: usize = 0x800000; // 8MB
 const LOAD_ADDR: u64 = 0x0;  // Guest code at start of RAM (simpler layout)
 const FB_ADDR: u64 = 0x100000; // Place Framebuffer at 1MB mark
+const DISK_ADDR: usize = 0x300000; // Disk Image at 3MB mark
 
 pub struct MacBackend {
     mem: *mut u8, // Pointer to the start of allocated RAM
@@ -63,7 +64,7 @@ impl Backend for MacBackend {
     }
     
     fn new() -> Self {
-        println!("[Aether::MacBackend] Creating VM (4MB RAM)...");
+        println!("[Aether::MacBackend] Creating VM (8MB RAM)...");
         let mem;
         unsafe {
             // 1. Create VM
@@ -72,40 +73,41 @@ impl Backend for MacBackend {
                 panic!("Failed to create VM: {}", ret);
             }
 
-            // 2. Allocate 4MB aligned memory (64KB alignment for safety)
+            // 2. Allocate 8MB aligned memory (64KB alignment for safety)
             let mem_layout = std::alloc::Layout::from_size_align(RAM_SIZE, 0x10000).unwrap();
-            mem = std::alloc::alloc_zeroed(mem_layout);
-            
-            // 3. Map Memory - FLAT RWX (Debugging "Translation Fault")
-            // Map the whole 4MB as Read/Write/Execute.
-            // This ensures no holes and matches block alignment better.
+            mem = std::alloc::alloc_zeroed(mem_layout) as *mut u8;          
+            // 3. Map Memory - FLAT RWX
             let ret = hv_vm_map(mem as *const c_void, 0, RAM_SIZE, HV_MEMORY_READ | HV_MEMORY_WRITE | HV_MEMORY_EXEC);
              if ret != HV_SUCCESS {
                 panic!("Failed to map memory: {}", ret);
             }
             
-            // Pointers for usage
-            let code_ptr = mem.add(0x10000); // 0x10000 offset
-            
-            // Load HVC Stub at 0x0...
-
-
             // Load HVC Stub at 0x0
             let hvc_opcode: u32 = 0xd4000002;
             std::ptr::copy_nonoverlapping(&hvc_opcode as *const u32 as *const u8, mem, 4);
             
-            // Load Guest Binary
-            let bin_path = "apps/hello_world/guest.bin";
-            if let Ok(code_data) = std::fs::read(bin_path) {
-                if code_data.len() > 0x80000 { panic!("Guest binary too large for Code Segment (max 512KB)!"); }
-                
-                // Write code into Host memory at address 0 (simpler layout)
-                std::ptr::copy_nonoverlapping(code_data.as_ptr(), mem, code_data.len());
-                sys_icache_invalidate(mem as *const c_void, code_data.len());
-                
-                println!("[Aether::MacBackend] Loaded guest: {} bytes", code_data.len());
+            // Load Guest Binary (Embedded)
+            let guest_bin = include_bytes!("../../../apps/hello_world/guest-aarch64.bin");
+            if guest_bin.len() > 0x80000 { panic!("Guest binary too large for Code Segment (max 512KB)!"); }
+            std::ptr::copy_nonoverlapping(guest_bin.as_ptr(), mem, guest_bin.len());
+            sys_icache_invalidate(mem as *const c_void, guest_bin.len());
+            println!("[Aether::MacBackend] Loaded guest: {} bytes", guest_bin.len());
+
+            // Load Disk Image (Embedded)
+            // Note: In a real OS this would be mapped via virtio, but for now we RAM-load it.
+            // We use standard file reading for disk.img to avoid recompiling kernel every time disk changes?
+            // "include_bytes!" embeds it into kernel binary.
+            // Let's try reading from file first if present (easier dev loop), else empty.
+            if let Ok(disk_data) = std::fs::read("disk.img") {
+                 let disk_ptr = mem.add(DISK_ADDR);
+                 if disk_data.len() > (RAM_SIZE - DISK_ADDR) {
+                     eprintln!("[Warning] Disk image too large for allocated RAM region!");
+                 } else {
+                     std::ptr::copy_nonoverlapping(disk_data.as_ptr(), disk_ptr, disk_data.len());
+                     println!("[Aether::MacBackend] Loaded disk image: {} bytes at 0x{:x}", disk_data.len(), DISK_ADDR);
+                 }
             } else {
-                eprintln!("[Aether::MacBackend] Failed to load guest binary from {}", bin_path);
+                 eprintln!("[Aether::MacBackend] Warning: disk.img not found. Filesystem will be empty.");
             }
         }
         
@@ -124,9 +126,10 @@ impl Backend for MacBackend {
             // Set CPSR to EL1h (0x3c4) - CRITICAL for HVC to trap to EL2!
             // Without this, vCPU runs in wrong exception level
             hv_vcpu_set_reg(vcpu, HV_REG_CPSR, 0x3c4);
-            // Set SP to top of RAM (4MB)
-            hv_vcpu_set_sys_reg(vcpu, HV_SYS_REG_SP_EL1, 0x3FF000);
+            // Set SP to top of RAM (8MB - epsilon)
+            hv_vcpu_set_sys_reg(vcpu, HV_SYS_REG_SP_EL1, 0x7FF000);
             hv_vcpu_set_sys_reg(vcpu, 0xc080, 0); // SCTLR_EL1 = 0 (MMU off)
+            hv_vcpu_set_sys_reg(vcpu, 0xc082, 0x300000); // CPACR_EL1 = FPEN(11) -> Enable FP/SIMD
             
             // Debug: verify memory content at 0x0
             let first_instr = *(self.mem as *const u32);
@@ -194,6 +197,25 @@ impl Backend for MacBackend {
     unsafe fn get_framebuffer(&self, width: usize, height: usize) -> &[u32] {
         let ptr = self.mem.add(FB_ADDR as usize) as *const u32;
         std::slice::from_raw_parts(ptr, width * height)
+    }
+
+    fn inject_key(&self, c: char) {
+        unsafe {
+            // MMIO Layout:
+            // 0x80000: Status (1 = Data Ready, 0 = Empty)
+            // 0x80004: Data (u32 ASCII)
+            let status_ptr = self.mem.add(0x80000) as *mut u32;
+            let data_ptr = self.mem.add(0x80004) as *mut u32;
+
+            // Simple polling: only write if guest has consumed previous key (Status == 0)
+            if std::ptr::read_volatile(status_ptr) == 0 {
+                std::ptr::write_volatile(data_ptr, c as u32);
+                std::ptr::write_volatile(status_ptr, 1); // Set ready flag
+                // println!("[Kernel] Injected key: '{}'", c); // DEBUG
+            } else {
+                // println!("[Kernel] Key dropped (Guest Busy): '{}'", c); // DEBUG
+            }
+        }
     }
 }
 

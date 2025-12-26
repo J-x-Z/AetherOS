@@ -1,0 +1,9 @@
+[package]
+
+name = "mkext2"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+zerocopy = { version = "0.7", features = ["derive"] }
+byteorder = "1.4"

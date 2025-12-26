@@ -8,10 +8,16 @@ pub mod font;
 pub mod console;
 
 // Re-export console functions for convenience
-pub use console::{init as console_init, print as console_print, println as console_println, clear as console_clear, set_colors};
+pub use console::{init as console_init, println as console_println, set_colors, console_getc, console_putc};
 
 // Framebuffer constants
 pub const FB_ADDR: usize = 0x100000;
+pub const KEYBOARD_STATUS: usize = 0x80000;
+pub const KEYBOARD_DATA: usize = 0x80004;
+pub const DISK_ADDR: usize = 0x300000;
+
+pub mod fs;
+
 pub const SCREEN_WIDTH: usize = 640;
 pub const SCREEN_HEIGHT: usize = 480;
 
@@ -20,6 +26,7 @@ pub fn print(msg: &str) {
     let ptr = msg.as_ptr() as u64;
     let len = msg.len() as u64;
     
+    #[cfg(target_arch = "aarch64")]
     unsafe {
         asm!(
             "hvc #0",
@@ -29,10 +36,23 @@ pub fn print(msg: &str) {
             options(nostack, nomem)
         );
     }
+
+    #[cfg(target_arch = "x86_64")]
+    unsafe {
+        asm!(
+            "out dx, al",
+            in("dx") 0x500u16,
+            in("al") HyperCall::Print as u8,
+            in("rdi") ptr,
+            in("rsi") len,
+            options(nostack, nomem)
+        );
+    }
 }
 
 /// Exit the guest
 pub fn exit(code: u64) -> ! {
+    #[cfg(target_arch = "aarch64")]
     unsafe {
         asm!(
             "mov x0, {0}",
@@ -40,6 +60,17 @@ pub fn exit(code: u64) -> ! {
             "hvc #0",
             in(reg) code,
             const HyperCall::Exit as u64,
+            options(noreturn)
+        );
+    }
+
+    #[cfg(target_arch = "x86_64")]
+    unsafe {
+        asm!(
+            "out dx, al",
+            in("dx") 0x500u16,
+            in("al") HyperCall::Exit as u8,
+            in("rdi") code,
             options(noreturn)
         );
     }
@@ -66,11 +97,40 @@ pub fn fill_screen(r: u8, g: u8, b: u8) {
     }
 }
 
+// --- Heap Allocation ---
+use linked_list_allocator::LockedHeap;
+
+#[global_allocator]
+pub static ALLOCATOR: LockedHeap = LockedHeap::empty();
+
+extern "C" {
+    static _heap_start: usize;
+}
+
+pub fn init_heap() {
+    unsafe {
+        let heap_start = &_heap_start as *const usize as usize;
+        // Assume we have up to stack start (0x7FF000)
+        // Let's use 4MB heap size or until stack.
+        // Guest Stack is at 0x7FF000.
+        // Linker symbol _heap_start is around 0x1A000 + BSS.
+        // So we have plenty of space.
+        let heap_size = 0x7FF000 - heap_start; 
+        ALLOCATOR.lock().init(heap_start as *mut u8, heap_size);
+    }
+}
+
+// Enable `extern crate alloc;`
+extern crate alloc;
+
 #[macro_export]
 macro_rules! entry_point {
     ($path:path) => {
         #[no_mangle]
         pub extern "C" fn _start() -> ! {
+            // Init Heap
+            $crate::init_heap();
+            
             let f: fn() -> ! = $path;
             f()
         }

@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 aether-user = { path = "../../user" }
+wasmi = { version = "0.31", default-features = false }
 
 [profile.release]
 panic = "abort"

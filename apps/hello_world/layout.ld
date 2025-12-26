@@ -15,5 +15,7 @@ SECTIONS
     }
     .bss : {
         *(.bss*)
+        . = ALIGN(4096);
+        _heap_start = .;
     }
 }

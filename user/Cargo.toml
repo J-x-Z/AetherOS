@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 aether-abi = { path = "../abi" }
+linked_list_allocator = "0.10.5"
 
 [profile.release]
 panic = "abort"

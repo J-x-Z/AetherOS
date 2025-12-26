@@ -1,2 +1,5 @@
 target/
-guest.bin
+guest-*.bin
+*.img
+*.log
+.DS_Store

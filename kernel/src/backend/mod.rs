@@ -3,7 +3,11 @@ pub trait Backend: Sync + Send {
     fn name(&self) -> &str;
     fn run(&self);
     // Unsafe because it returns a slice to raw memory modified by another thread
+    // Unsafe because it returns a slice to raw memory modified by another thread
     unsafe fn get_framebuffer(&self, width: usize, height: usize) -> &[u32];
+
+    // Inject a key press into the Guest (Default: Do nothing)
+    fn inject_key(&self, _c: char) {}
 }
 
 // ===== Platform-specific module declarations =====

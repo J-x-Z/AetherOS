@@ -3,6 +3,7 @@ members = [
     "kernel",
     "abi",
     "user",
-    "apps/hello_world"
+    "apps/hello_world",
+    "tools/mkext2"
 ]
 resolver = "2"

@@ -41,6 +41,15 @@ impl Console {
         self.cursor_y = 0;
     }
 
+    // ... (omitted)
+
+/// Initialize the console (clear screen)
+pub fn init() {
+    unsafe {
+        CONSOLE.clear();
+    }
+}
+
     /// Set foreground color (RGB)
     pub fn set_fg(&mut self, r: u8, g: u8, b: u8) {
         self.fg_color = ((r as u32) << 16) | ((g as u32) << 8) | (b as u32);
@@ -108,6 +117,59 @@ impl Console {
         }
     }
 
+    /// Handle backspace - delete previous character
+    pub fn backspace(&mut self) {
+        if self.cursor_x > 0 {
+            self.cursor_x -= 1;
+            // Clear the character by drawing a space
+            self.draw_char(self.cursor_x, self.cursor_y, b' ');
+        } else if self.cursor_y > 0 {
+            // Move to end of previous line
+            self.cursor_y -= 1;
+            self.cursor_x = CONSOLE_COLS - 1;
+            self.draw_char(self.cursor_x, self.cursor_y, b' ');
+        }
+    }
+
+    /// Draw cursor at current position (block cursor)
+    pub fn draw_cursor(&self) {
+        let base_x = self.cursor_x * FONT_WIDTH;
+        let base_y = self.cursor_y * FONT_HEIGHT;
+        let fb = FB_ADDR as *mut u32;
+        
+        // Draw a filled rectangle as cursor
+        for row in 0..FONT_HEIGHT {
+            for col in 0..FONT_WIDTH {
+                let x = base_x + col;
+                let y = base_y + row;
+                if x < SCREEN_WIDTH && y < SCREEN_HEIGHT {
+                    unsafe {
+                        fb.add(y * SCREEN_WIDTH + x).write_volatile(self.fg_color);
+                    }
+                }
+            }
+        }
+    }
+
+    /// Hide cursor (redraw background)
+    pub fn hide_cursor(&self) {
+        let base_x = self.cursor_x * FONT_WIDTH;
+        let base_y = self.cursor_y * FONT_HEIGHT;
+        let fb = FB_ADDR as *mut u32;
+        
+        for row in 0..FONT_HEIGHT {
+            for col in 0..FONT_WIDTH {
+                let x = base_x + col;
+                let y = base_y + row;
+                if x < SCREEN_WIDTH && y < SCREEN_HEIGHT {
+                    unsafe {
+                        fb.add(y * SCREEN_WIDTH + x).write_volatile(self.bg_color);
+                    }
+                }
+            }
+        }
+    }
+
     /// Print a single character
     pub fn putc(&mut self, c: u8) {
         match c {
@@ -124,6 +186,10 @@ impl Console {
                     self.putc(b' ');
                 }
             }
+            0x08 => {
+                // Backspace
+                self.backspace();
+            }
             _ => {
                 self.draw_char(self.cursor_x, self.cursor_y, c);
                 self.cursor_x += 1;
@@ -137,7 +203,7 @@ impl Console {
     /// Print a string
     pub fn puts(&mut self, s: &str) {
         for c in s.bytes() {
-            self.putc(c);
+             self.putc(c);
         }
     }
 
@@ -184,5 +250,29 @@ pub fn set_colors(fg_r: u8, fg_g: u8, fg_b: u8, bg_r: u8, bg_g: u8, bg_b: u8) {
     unsafe {
         CONSOLE.set_fg(fg_r, fg_g, fg_b);
         CONSOLE.set_bg(bg_r, bg_g, bg_b);
+    }
+}
+
+/// Check for incoming character (Polling)
+pub fn console_getc() -> Option<char> {
+    unsafe {
+        let status_ptr = crate::KEYBOARD_STATUS as *mut u32;
+        if status_ptr.read_volatile() == 1 {
+            let data_ptr = crate::KEYBOARD_DATA as *mut u32;
+            let c = data_ptr.read_volatile() as u8 as char;
+            
+            // Acknowledge (Clear Status)
+            status_ptr.write_volatile(0);
+            
+            return Some(c);
+        }
+    }
+    None
+}
+
+/// Print a single character to the console
+pub fn console_putc(c: char) {
+    unsafe {
+        CONSOLE.putc(c as u8);
     }
 }

@@ -24,7 +24,9 @@ jobs:
       run: cargo install cargo-binutils
     - name: Build Guest
       run: |
-        cargo build --release -p hello_world --target aarch64-unknown-none
+        cd apps/hello_world
+        RUSTFLAGS="-C link-arg=-T$(pwd)/layout.ld -C link-arg=-n" cargo build --release --target aarch64-unknown-none
+        cd ../..
         rust-objcopy -O binary target/aarch64-unknown-none/release/hello_world apps/hello_world/guest.bin
     - name: Upload Guest Artifact
       uses: actions/upload-artifact@v4

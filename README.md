@@ -9,7 +9,7 @@
   <img src="https://img.shields.io/badge/rust-1.70+-orange?logo=rust" alt="Rust">
   <img src="https://img.shields.io/badge/platforms-8+-blue" alt="Platforms">
   <img src="https://github.com/J-x-Z/AetherOS/actions/workflows/build.yml/badge.svg" alt="CI">
-  <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
+  <img src="https://img.shields.io/badge/license-GPLv3-blue" alt="License">
 </p>
 
 ---
@@ -136,12 +136,12 @@ See [ROADMAP.md](./ROADMAP.md) for detailed development plan.
 - [x] Graphics Subsystem (Framebuffer)
 - [x] macOS Backend (Hypervisor.framework)
 - [x] Multi-platform CI (8 targets)
-- [ ] **TTY Console** - Text rendering on screen
-- [ ] **Input Handling** - Keyboard/Mouse events
+- [x] **TTY Console** - Text rendering on screen
+- [x] **Input Handling** - Keyboard/Mouse events
 
 ### Phase 2: Backends
-- [ ] Linux KVM implementation
-- [ ] Windows WHP implementation
+- [x] Linux KVM implementation
+- [x] Windows WHP implementation
 - [ ] BSD family implementations
 
 ### Phase 3: Ecosystem
@@ -167,7 +167,7 @@ See [ROADMAP.md](./ROADMAP.md) for detailed development plan.
 
 ## 📄 License
 
-MIT License - See [LICENSE](./LICENSE) for details.
+GPLv3 License - See [LICENSE](./LICENSE) for details.
 
 ---
 
