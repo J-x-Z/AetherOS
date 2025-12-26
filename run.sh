@@ -29,31 +29,31 @@ cargo run --release -p mkext2 -- "$wasm_path"
 
 echo "=== Building Kernel ==="
 # We default to aarch64 guest on aarch64 host for now in macos.rs
-cargo build --release -p aether-kernel
+cargo build --release -p aether
 
 # 3. Sign & Run (Platform Specific)
 OS="$(uname -s)"
 if [ "$OS" = "Darwin" ]; then
     echo "=== Signing Kernel (macOS) ==="
-    codesign --entitlements kernel/entitlements.plist --force -s - target/release/aether-kernel
+    codesign --entitlements kernel/entitlements.plist --force -s - target/release/aether
     
     echo "=== Running AetherOS (macOS) ==="
-    ./target/release/aether-kernel
+    ./target/release/aether
 
 elif [ "$OS" = "Linux" ]; then
     echo "=== Running AetherOS (Linux) ==="
     if [ -w /dev/kvm ]; then
-        ./target/release/aether-kernel
+        ./target/release/aether
     else
         echo "Warning: /dev/kvm is not writable. Trying sudo..."
-        sudo ./target/release/aether-kernel
+        sudo ./target/release/aether
     fi
     
 elif [[ "$OS" == CYGWIN* || "$OS" == MINGW* || "$OS" == MSYS* ]]; then
     echo "=== Running AetherOS (Windows) ==="
-    ./target/release/aether-kernel.exe
+    ./target/release/aether.exe
     
 else
     echo "Unknown OS: $OS. Attempting to run..."
-    ./target/release/aether-kernel
+    ./target/release/aether
 fi

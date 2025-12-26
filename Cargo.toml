@@ -1,9 +1,11 @@
 [workspace]
 members = [
     "kernel",
+    "kernel-uefi",
     "abi",
     "user",
     "apps/hello_world",
+    "apps/wasm_simple",
     "tools/mkext2"
 ]
 resolver = "2"

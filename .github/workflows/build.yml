@@ -33,6 +33,12 @@ jobs:
       with:
         name: guest-binary
         path: apps/hello_world/guest.bin
+    - name: Add WASM Target
+      run: rustup target add wasm32-unknown-unknown
+    - name: Build WASM App
+      run: |
+        cargo build --release --target wasm32-unknown-unknown -p wasm_simple
+        # No object copy needed, the .wasm is the artifact
 
   # 2. Build Kernel - macOS (M1/M2)
   build-kernel-macos:
@@ -47,10 +53,10 @@ jobs:
         path: apps/hello_world
     - name: Build Kernel
       run: |
-        cargo build --release -p aether-kernel
+        cargo build --release -p aether
     - name: Sign Code
       run: |
-        codesign --entitlements kernel/entitlements.plist --force -s - target/release/aether-kernel
+        codesign --entitlements kernel/entitlements.plist --force -s - target/release/aether
         
   # 3. Build Kernel - Linux (Check Only)
   build-kernel-linux:
@@ -61,7 +67,7 @@ jobs:
       run: sudo apt-get update && sudo apt-get install -y libxkbcommon-dev libwayland-cursor0 libwayland-egl1 libx11-dev libxcursor-dev libxi-dev libxrandr-dev
     - name: Check Linux Build
       run: |
-        cargo check --target x86_64-unknown-linux-gnu -p aether-kernel
+        cargo check --target x86_64-unknown-linux-gnu -p aether
 
   # 4. Build Kernel - Windows (Check Only)
   build-kernel-windows:
@@ -70,7 +76,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: Build Windows
       run: |
-        cargo check --release -p aether-kernel
+        cargo check --release -p aether
 
   # 5. Build Kernel - Android (Check Only)
   build-kernel-android:
@@ -81,7 +87,7 @@ jobs:
       run: rustup target add aarch64-linux-android
     - name: Check Android Build
       run: |
-        cargo check --target aarch64-linux-android -p aether-kernel
+        cargo check --target aarch64-linux-android -p aether
 
   # 6. Build Kernel - FreeBSD (Cross-compile Check)
   build-kernel-freebsd:
@@ -93,7 +99,7 @@ jobs:
       with:
         targets: x86_64-unknown-freebsd
     - name: Check FreeBSD Build
-      run: cargo check --target x86_64-unknown-freebsd -p aether-kernel
+      run: cargo check --target x86_64-unknown-freebsd -p aether
 
   # 7. Build Kernel - NetBSD (Cross-compile Check)
   build-kernel-netbsd:
@@ -105,6 +111,20 @@ jobs:
       with:
         targets: x86_64-unknown-netbsd
     - name: Check NetBSD Build
-      run: cargo check --target x86_64-unknown-netbsd -p aether-kernel
+      run: cargo check --target x86_64-unknown-netbsd -p aether
+
+  # 8. Build Kernel - UEFI (Bare Metal)
+  build-kernel-uefi:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Rust Nightly
+      uses: dtolnay/rust-toolchain@nightly
+      with:
+        targets: x86_64-unknown-uefi
+        components: rust-src, llvm-tools-preview
+    - name: Build UEFI Kernel
+      run: |
+        cargo build --target x86_64-unknown-uefi -p aether-kernel-uefi -Z build-std=core,compiler_builtins,alloc
 
 
