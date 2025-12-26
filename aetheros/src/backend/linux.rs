@@ -122,6 +122,37 @@ mod kvm_impl {
     }
 }
 
+#[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+mod kvm_impl_x86 {
+    use super::*;
+    
+    pub struct LinuxBackendInner {
+        mem: *mut u8,
+    }
+    
+    impl LinuxBackendInner {
+        pub fn new() -> Self {
+            // TODO: Implement x86_64 KVM support
+            println!("[Aether::LinuxBackend] x86_64 KVM not yet implemented");
+            let mem = unsafe {
+                let layout = std::alloc::Layout::from_size_align(0x100000, 0x1000).unwrap();
+                std::alloc::alloc_zeroed(layout)
+            };
+            LinuxBackendInner { mem }
+        }
+        
+        pub fn step(&self) -> super::ExitReason {
+            // Stub - just yield
+            std::thread::sleep(std::time::Duration::from_millis(100));
+            super::ExitReason::Yield
+        }
+        
+        pub fn get_mem(&self) -> *mut u8 {
+            self.mem
+        }
+    }
+}
+
 pub struct LinuxBackend {
     #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
     inner: kvm_impl::LinuxBackendInner,
