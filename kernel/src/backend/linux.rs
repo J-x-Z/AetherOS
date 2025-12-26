@@ -285,7 +285,7 @@ mod kvm_impl_x86 {
             vcpu.set_regs(&regs).expect("set regs");
         }
 
-        pub fn run(&self) {
+        pub fn run(&mut self) {
             println!("[Aether::LinuxBackend] Starting vCPU Loop...");
             loop {
                 match self.vcpu.run() {

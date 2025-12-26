@@ -152,45 +152,27 @@ impl Backend for WindowsBackend {
         // EFER: LME | LMA
         reg_values[3].Reg64 = 0x500;
 
-        // Helper for Segment
-        fn make_segment(selector: u16, type_: u32) -> WHV_X64_SEGMENT_REGISTER {
-            WHV_X64_SEGMENT_REGISTER {
-                Base: 0,
-                Limit: 0xffffffff,
-                Selector: selector,
-                Attributes: (1 << 7) | (1 << 4) | (1 << 12) | // Present | S | Granularity
-                           (type_ as u16) | // Type
-                           (1 << 13), // Long Mode (CS only?) - NO, L bit is in attributes bit 13?
-                           // Actually WHP attributes are bitfields.
-                           // Cleaner would be manual construction if needed, but lets assume minimal valid.
-                           // Attributes format:
-                           // type:4, s:1, dpl:2, p:1, avl:1, l:1, db:1, g:1
-                           // type=11 (Code), s=1, p=1, l=1, g=1 => 0b1010_0000_1001_1011 = 0xA09B
-                 ..Default::default()
-            }
-        }
-        
-        // Let's use raw u16 for Attributes because the struct helper is tricky in Windows crate
-        // 0xA09B: P=1, L=1, S=1, Type=11 (Code), G=1
+        // Helper for Segment - using Anonymous union
+        // Attributes format: type:4, s:1, dpl:2, p:1, avl:1, l:1, db:1, g:1
         
         let mut cs = WHV_X64_SEGMENT_REGISTER::default();
         cs.Base = 0;
         cs.Limit = 0xffffffff;
         cs.Selector = 1 << 3;
-        cs.Attributes = 0xA09B; // Long Mode Code
+        cs.Anonymous.Attributes = 0xA09B; // Long Mode Code: P=1, L=1, S=1, Type=11, G=1
 
         let mut ds = WHV_X64_SEGMENT_REGISTER::default();
         ds.Base = 0;
         ds.Limit = 0xffffffff;
         ds.Selector = 2 << 3;
-        ds.Attributes = 0xC093; // 0b1100_0000_1001_0011 (P=1, DB=1, G=1, S=1, Type=3 Data)
+        ds.Anonymous.Attributes = 0xC093; // Data: P=1, DB=1, G=1, S=1, Type=3
 
         reg_values[4].Segment = cs;
         reg_values[5].Segment = ds;
         reg_values[6].Segment = ds; // ES
         reg_values[7].Segment = ds; // FS
         reg_values[8].Segment = ds; // GS
-        reg_values[9].Segment = ds; // SS (Actually SS not used in long mode but good to set)
+        reg_values[9].Segment = ds; // SS
 
         // RIP
         reg_values[10].Reg64 = 0x0;
