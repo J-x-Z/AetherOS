@@ -101,7 +101,94 @@ fn cmd_ls() {
     }
 }
 
-// ... cat ... wasm ...
+fn cmd_cat(filename: &[u8]) {
+    // Convert bytes to string for lookup
+    let name = core::str::from_utf8(filename).unwrap_or("?");
+    if let Some(fs) = aether_user::fs::Ext2Driver::new() {
+        if let Some(data) = fs.read_file(name) {
+            // Print file contents as string
+            if let Ok(s) = core::str::from_utf8(&data) {
+                console_println(s);
+            } else {
+                console_println("[Binary data]");
+            }
+        } else {
+            console_println("File not found.");
+        }
+    } else {
+        console_println("Error: FS not mounted.");
+    }
+}
+
+fn cmd_wasm(filename: &[u8]) {
+    let name = core::str::from_utf8(filename).unwrap_or("?");
+    console_println("Loading WASM...");
+    if let Some(fs) = aether_user::fs::Ext2Driver::new() {
+        if let Some(wasm_bytes) = fs.read_file(name) {
+            run_wasm(&wasm_bytes);
+        } else {
+            console_println("WASM file not found.");
+        }
+    } else {
+        console_println("Error: FS not mounted.");
+    }
+}
+
+fn run_wasm(bytes: &[u8]) {
+    use wasmi::{Engine, Linker, Module, Store, Caller, Func};
+    
+    let engine = Engine::default();
+    let module = match Module::new(&engine, bytes) {
+        Ok(m) => m,
+        Err(e) => {
+            console_println("WASM parse error");
+            return;
+        }
+    };
+    
+    // Create linker with host function
+    let mut linker = <Linker<()>>::new(&engine);
+    
+    // Define host function: env.print
+    linker.define("env", "print", Func::wrap(&engine, |_caller: Caller<'_, ()>, val: i32| {
+        // Simple print implementation
+        let mut buf = [0u8; 16];
+        let s = format_i32(val, &mut buf);
+        console_println(s);
+    })).unwrap();
+    
+    let mut store = Store::new(&engine, ());
+    let instance = match linker.instantiate(&mut store, &module) {
+        Ok(i) => match i.start(&mut store) {
+            Ok(i) => i,
+            Err(_) => { console_println("WASM start failed"); return; }
+        },
+        Err(_) => { console_println("WASM instantiate failed"); return; }
+    };
+    
+    // Call run() if it exists
+    if let Some(run) = instance.get_func(&store, "run") {
+        let _ = run.call(&mut store, &[], &mut []);
+    }
+    console_println("WASM execution complete.");
+}
+
+fn format_i32(val: i32, buf: &mut [u8; 16]) -> &str {
+    // Simple i32 to string
+    let mut v = val;
+    let mut i = buf.len() - 1;
+    let negative = v < 0;
+    if negative { v = -v; }
+    loop {
+        buf[i] = b'0' + (v % 10) as u8;
+        v /= 10;
+        if v == 0 { break; }
+        if i == 0 { break; }
+        i -= 1;
+    }
+    if negative && i > 0 { i -= 1; buf[i] = b'-'; }
+    core::str::from_utf8(&buf[i..]).unwrap_or("?")
+}
 
 fn cmd_help() {
     console_println("Commands: help, ls, cat <file>, wasm <file>, clear, info");

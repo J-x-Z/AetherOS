@@ -103,8 +103,11 @@ impl Backend for WindowsBackend {
             backend
         }
     }
+}
 
-    #[cfg(target_os = "windows")]
+// Helper implementation for Windows-only methods
+#[cfg(target_os = "windows")]
+impl WindowsBackend {
     unsafe fn setup_long_mode(partition: WHV_PARTITION_HANDLE, mem: *mut u8) {
         // Constants (Same as Linux)
         const PML4_START: u64 = 0x9000;
@@ -189,7 +192,9 @@ impl Backend for WindowsBackend {
             &reg_values as *const _ as *const _,
         ).expect("Failed to set registers");
     }
-    
+}
+
+impl Backend for WindowsBackend {
     #[cfg(not(target_os = "windows"))]
     fn new() -> Self {
         panic!("Windows Backend not available on this platform");

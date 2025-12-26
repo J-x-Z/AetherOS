@@ -285,10 +285,12 @@ mod kvm_impl_x86 {
             vcpu.set_regs(&regs).expect("set regs");
         }
 
-        pub fn run(&mut self) {
+        pub fn run(&self) {
             println!("[Aether::LinuxBackend] Starting vCPU Loop...");
+            // SAFETY: We have exclusive access to vcpu via Arc ownership in main.rs
+            let vcpu = unsafe { &mut *(&self.vcpu as *const _ as *mut VcpuFd) };
             loop {
-                match self.vcpu.run() {
+                match vcpu.run() {
                     Ok(exit_reason) => match exit_reason {
                         VcpuExit::IoOut(addr, data) => {
                             // Simple IO Out for debugging
