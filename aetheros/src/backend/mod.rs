@@ -1,0 +1,56 @@
+// Re-export core traits
+pub use aether_core::backend::{Backend, ExitReason};
+
+// Local definitions removed (superseded by core)
+
+// ===== Platform-specific module declarations =====
+
+#[cfg(target_os = "macos")]
+mod macos;
+
+#[cfg(target_os = "linux")]
+mod linux;
+
+#[cfg(target_os = "android")]
+mod android;
+
+#[cfg(target_os = "windows")]
+mod windows;
+
+#[cfg(target_os = "freebsd")]
+mod freebsd;
+
+#[cfg(target_os = "openbsd")]
+mod openbsd;
+
+#[cfg(target_os = "netbsd")]
+mod netbsd;
+
+#[cfg(target_os = "dragonfly")]
+mod dragonfly;
+
+// ===== Platform-specific backend exports =====
+
+#[cfg(target_os = "macos")]
+pub use macos::MacBackend as CurrentBackend;
+
+#[cfg(target_os = "linux")]
+pub use linux::LinuxBackend as CurrentBackend;
+
+#[cfg(target_os = "android")]
+pub use android::AndroidBackend as CurrentBackend;
+
+#[cfg(target_os = "windows")]
+pub use windows::WindowsBackend as CurrentBackend;
+
+#[cfg(target_os = "freebsd")]
+pub use freebsd::FreeBsdBackend as CurrentBackend;
+
+#[cfg(target_os = "openbsd")]
+pub use openbsd::OpenBsdBackend as CurrentBackend;
+
+#[cfg(target_os = "netbsd")]
+pub use netbsd::NetBsdBackend as CurrentBackend;
+
+#[cfg(target_os = "dragonfly")]
+pub use dragonfly::DragonFlyBackend as CurrentBackend;
