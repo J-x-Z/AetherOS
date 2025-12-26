@@ -74,12 +74,26 @@ pub fn exit(code: u64) -> ! {
     }
 }
 
+/// Helper to get dynamic FB address
+pub fn get_fb_addr() -> usize {
+    unsafe { BASE_ADDRESS + (FB_ADDR as usize) }
+}
+
+pub fn get_keyboard_status_addr() -> usize {
+    unsafe { BASE_ADDRESS + (KEYBOARD_STATUS as usize) }
+}
+
+pub fn get_keyboard_data_addr() -> usize {
+    unsafe { BASE_ADDRESS + (KEYBOARD_DATA as usize) }
+}
+
+
 /// Draw a single pixel (low-level)
 pub fn draw_pixel(x: usize, y: usize, r: u8, g: u8, b: u8) {
     if x >= SCREEN_WIDTH || y >= SCREEN_HEIGHT { return; }
     let color = ((r as u32) << 16) | ((g as u32) << 8) | (b as u32);
     unsafe {
-        let ptr = (FB_ADDR + (y * SCREEN_WIDTH + x) * 4) as *mut u32;
+        let ptr = (get_fb_addr() + (y * SCREEN_WIDTH + x) * 4) as *mut u32;
         ptr.write_volatile(color);
     }
 }
@@ -88,7 +102,7 @@ pub fn draw_pixel(x: usize, y: usize, r: u8, g: u8, b: u8) {
 pub fn fill_screen(r: u8, g: u8, b: u8) {
     let color = ((r as u32) << 16) | ((g as u32) << 8) | (b as u32);
     unsafe {
-        let ptr = FB_ADDR as *mut u32;
+        let ptr = get_fb_addr() as *mut u32;
         for i in 0..(SCREEN_WIDTH * SCREEN_HEIGHT) {
             ptr.add(i).write_volatile(color);
         }
@@ -108,12 +122,10 @@ extern "C" {
 pub fn init_heap() {
     unsafe {
         let heap_start = &_heap_start as *const usize as usize;
-        // Assume we have up to stack start (0x7FF000)
-        // Let's use 4MB heap size or until stack.
-        // Guest Stack is at 0x7FF000.
-        // Linker symbol _heap_start is around 0x1A000 + BSS.
-        // So we have plenty of space.
-        let heap_size = 0x7FF000 - heap_start; 
+        // Adjusted for UEFI Relocatable Execution:
+        // Use fixed 4MB heap instead of hardcoded 0x7FF000 limit.
+        // This ensures we stay within the allocated RAM block (assuming it's > 4MB + code).
+        let heap_size = 4 * 1024 * 1024; 
         ALLOCATOR.lock().init(heap_start as *mut u8, heap_size);
     }
 }
@@ -121,11 +133,15 @@ pub fn init_heap() {
 // Enable `extern crate alloc;`
 extern crate alloc;
 
+pub static mut BASE_ADDRESS: usize = 0;
+
 #[macro_export]
 macro_rules! entry_point {
     ($path:path) => {
         #[no_mangle]
-        pub extern "C" fn _start() -> ! {
+        pub extern "C" fn _start(base_addr: usize) -> ! {
+            unsafe { $crate::BASE_ADDRESS = base_addr; }
+            
             // Init Heap
             $crate::init_heap();
             
@@ -139,3 +155,4 @@ macro_rules! entry_point {
         }
     }
 }
+

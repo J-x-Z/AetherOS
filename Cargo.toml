@@ -1,7 +1,7 @@
 [workspace]
 members = [
-    "kernel",
-    "kernel-uefi",
+    "aetheros",         # Cross-platform software stack (like Android)
+    "aether-core",      # Shared kernel abstractions
     "abi",
     "user",
     "apps/hello_world",

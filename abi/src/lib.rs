@@ -21,9 +21,9 @@ impl HyperCall {
 }
 
 pub mod mmio {
-    pub const RAM_SIZE: usize = 4 * 1024 * 1024; // 4MB
-    pub const FB_ADDR: usize = 0x100000;         // 1MB offset for framebuffer
-    pub const DISK_ADDR: usize = 0x300000;       // 3MB offset for disk image
+    pub const RAM_SIZE: usize = 16 * 1024 * 1024; // 16MB
+    pub const FB_ADDR: usize = 0x100000;          // 1MB offset
+    pub const DISK_ADDR: usize = 0x300000;        // 3MB offset
     pub const KEYBOARD_STATUS: usize = 0x80000;
     pub const KEYBOARD_DATA: usize = 0x80004;
 }

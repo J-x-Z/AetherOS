@@ -7,11 +7,15 @@ name = "aether"
 version = "0.1.0"
 dependencies = [
  "aether-abi",
- "kvm-bindings",
- "kvm-ioctls",
- "libc",
- "minifb",
- "windows",
+ "aether-core",
+ "lazy_static",
+ "log",
+ "pc-keyboard",
+ "pic8259",
+ "spin",
+ "uefi",
+ "uefi-services",
+ "x86_64",
 ]
 
 [[package]]
@@ -19,13 +23,25 @@ name = "aether-abi"
 version = "0.1.0"
 
 [[package]]
-name = "aether-kernel-uefi"
+name = "aether-core"
 version = "0.1.0"
 dependencies = [
  "aether-abi",
  "log",
- "uefi",
- "uefi-services",
+ "spin",
+]
+
+[[package]]
+name = "aether-legacy"
+version = "0.1.0"
+dependencies = [
+ "aether-abi",
+ "aether-core",
+ "kvm-bindings 0.6.0",
+ "kvm-ioctls",
+ "libc",
+ "minifb",
+ "windows",
 ]
 
 [[package]]
@@ -34,6 +50,19 @@ version = "0.1.0"
 dependencies = [
  "aether-abi",
  "linked_list_allocator",
+]
+
+[[package]]
+name = "aetheros"
+version = "0.1.0"
+dependencies = [
+ "aether-abi",
+ "aether-core",
+ "kvm-bindings 0.6.0",
+ "kvm-ioctls",
+ "libc",
+ "minifb",
+ "windows",
 ]
 
 [[package]]
@@ -264,6 +293,12 @@ dependencies = [
 
 [[package]]
 name = "kvm-bindings"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "efe70e65a5b092161d17f5005b66e5eefe7a94a70c332e755036fc4af78c4e79"
+
+[[package]]
+name = "kvm-bindings"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fa4933174d0cc4b77b958578cd45784071cc5ae212c2d78fbd755aaaa6dfa71a"
@@ -278,7 +313,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e013ae7fcd2c6a8f384104d16afe7ea02969301ea2bb2a56e44b011ebc907cab"
 dependencies = [
  "bitflags 2.10.0",
- "kvm-bindings",
+ "kvm-bindings 0.10.0",
  "libc",
  "vmm-sys-util",
 ]
@@ -288,6 +323,9 @@ name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
+dependencies = [
+ "spin",
+]
 
 [[package]]
 name = "libc"
@@ -445,6 +483,21 @@ name = "paste"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
+
+[[package]]
+name = "pc-keyboard"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f0ca629cbb3f0d5b699c338f0129ff78c9bfd7ea8b1258ad529bff490dc8ed5a"
+
+[[package]]
+name = "pic8259"
+version = "0.10.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb844b5b01db1e0b17938685738f113bfc903846f18932b378bc0eabfa40e194"
+dependencies = [
+ "x86_64",
+]
 
 [[package]]
 name = "pin-project-lite"
@@ -630,6 +683,9 @@ name = "spin"
 version = "0.9.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6980e8d7511241f8acf4aebddbb1ff938df5eebe98691418c4468d0b72a96a67"
+dependencies = [
+ "lock_api",
+]
 
 [[package]]
 name = "spinning_top"
@@ -760,6 +816,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "volatile"
+version = "0.4.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "442887c63f2c839b346c192d047a7c87e73d0689c9157b00b53dcc27dd5ea793"
+
+[[package]]
 name = "wasip2"
 version = "1.0.1+wasi-0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -829,6 +891,11 @@ dependencies = [
 [[package]]
 name = "wasm_simple"
 version = "0.1.0"
+dependencies = [
+ "aether-user",
+ "log",
+ "wasmi",
+]
 
 [[package]]
 name = "wasmi"
@@ -1133,6 +1200,18 @@ dependencies = [
  "libc",
  "once_cell",
  "pkg-config",
+]
+
+[[package]]
+name = "x86_64"
+version = "0.14.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c101112411baafbb4bf8d33e4c4a80ab5b02d74d2612331c61e8192fc9710491"
+dependencies = [
+ "bit_field",
+ "bitflags 2.10.0",
+ "rustversion",
+ "volatile",
 ]
 
 [[package]]

@@ -31,7 +31,7 @@ impl Console {
 
     /// Clear the entire screen
     pub fn clear(&mut self) {
-        let fb = FB_ADDR as *mut u32;
+        let fb = crate::get_fb_addr() as *mut u32;
         for i in 0..(SCREEN_WIDTH * SCREEN_HEIGHT) {
             unsafe {
                 fb.add(i).write_volatile(self.bg_color);
@@ -65,7 +65,7 @@ pub fn init() {
         let bitmap = get_char_bitmap(c);
         let base_x = char_x * FONT_WIDTH;
         let base_y = char_y * FONT_HEIGHT;
-        let fb = FB_ADDR as *mut u32;
+        let fb = crate::get_fb_addr() as *mut u32;
 
         for row in 0..FONT_HEIGHT {
             let row_data = bitmap[row];
@@ -85,7 +85,7 @@ pub fn init() {
 
     /// Scroll the screen up by one line
     fn scroll(&mut self) {
-        let fb = FB_ADDR as *mut u32;
+        let fb = crate::get_fb_addr() as *mut u32;
         let line_pixels = FONT_HEIGHT * SCREEN_WIDTH;
         let total_pixels = SCREEN_WIDTH * SCREEN_HEIGHT;
 
@@ -135,7 +135,7 @@ pub fn init() {
     pub fn draw_cursor(&self) {
         let base_x = self.cursor_x * FONT_WIDTH;
         let base_y = self.cursor_y * FONT_HEIGHT;
-        let fb = FB_ADDR as *mut u32;
+        let fb = crate::get_fb_addr() as *mut u32;
         
         // Draw a filled rectangle as cursor
         for row in 0..FONT_HEIGHT {
@@ -155,7 +155,7 @@ pub fn init() {
     pub fn hide_cursor(&self) {
         let base_x = self.cursor_x * FONT_WIDTH;
         let base_y = self.cursor_y * FONT_HEIGHT;
-        let fb = FB_ADDR as *mut u32;
+        let fb = crate::get_fb_addr() as *mut u32;
         
         for row in 0..FONT_HEIGHT {
             for col in 0..FONT_WIDTH {
@@ -256,9 +256,9 @@ pub fn set_colors(fg_r: u8, fg_g: u8, fg_b: u8, bg_r: u8, bg_g: u8, bg_b: u8) {
 /// Check for incoming character (Polling)
 pub fn console_getc() -> Option<char> {
     unsafe {
-        let status_ptr = crate::KEYBOARD_STATUS as *mut u32;
+        let status_ptr = crate::get_keyboard_status_addr() as *mut u32;
         if status_ptr.read_volatile() == 1 {
-            let data_ptr = crate::KEYBOARD_DATA as *mut u32;
+            let data_ptr = crate::get_keyboard_data_addr() as *mut u32;
             let c = data_ptr.read_volatile() as u8 as char;
             
             // Acknowledge (Clear Status)

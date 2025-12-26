@@ -1,8 +1,0 @@
-[build]
-target-dir = "target"
-
-[target.x86_64-unknown-uefi]
-runner = "uefi-run -b /Applications/Xcode.app/Contents/Developer/usr/share/firmware/OVMF_CODE-pure-efi.fd -q qemu-system-x86_64"
-
-[target.aarch64-unknown-uefi]
-runner = "uefi-run -q qemu-system-aarch64"

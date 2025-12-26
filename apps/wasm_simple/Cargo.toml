@@ -3,8 +3,7 @@ name = "wasm_simple"
 version = "0.1.0"
 edition = "2021"
 
-[lib]
-crate-type = ["cdylib"]
-
 [dependencies]
-# No dependencies for a simple test
+aether-user = { path = "../../user" }
+wasmi = { version = "0.31", default-features = false }
+log = "0.4"
