@@ -1,5 +1,4 @@
 target/
-guest-*.bin
 *.img
 *.log
 .DS_Store
