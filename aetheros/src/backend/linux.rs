@@ -124,7 +124,7 @@ mod kvm_impl {
 
 #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
 mod kvm_impl_x86 {
-    use super::*;
+    use super::super::ExitReason;
     
     pub struct LinuxBackendInner {
         mem: *mut u8,
@@ -141,10 +141,10 @@ mod kvm_impl_x86 {
             LinuxBackendInner { mem }
         }
         
-        pub fn step(&self) -> super::ExitReason {
+        pub fn step(&self) -> ExitReason {
             // Stub - just yield
             std::thread::sleep(std::time::Duration::from_millis(100));
-            super::ExitReason::Yield
+            ExitReason::Yield
         }
         
         pub fn get_mem(&self) -> *mut u8 {
