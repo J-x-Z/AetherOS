@@ -45,10 +45,12 @@ struct HvVcpuExitException {
 }
 
 // Memory Layout
-const RAM_SIZE: usize = 0x800000; // 8MB
+use aether_abi::mmio::{RAM_SIZE, FB_ADDR, DISK_ADDR};
+
+// const RAM_SIZE: usize = 0x800000; // 8MB
 const LOAD_ADDR: u64 = 0x0;  // Guest code at start of RAM (simpler layout)
-const FB_ADDR: u64 = 0x100000; // Place Framebuffer at 1MB mark
-const DISK_ADDR: usize = 0x300000; // Disk Image at 3MB mark
+// const FB_ADDR: u64 = 0x100000; // Place Framebuffer at 1MB mark
+// const DISK_ADDR: usize = 0x300000; // Disk Image at 3MB mark
 
 use super::ExitReason;
 use std::sync::Mutex;

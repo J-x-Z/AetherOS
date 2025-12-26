@@ -11,10 +11,8 @@ pub mod console;
 pub use console::{init as console_init, println as console_println, set_colors, console_getc, console_putc};
 
 // Framebuffer constants
-pub const FB_ADDR: usize = 0x100000;
-pub const KEYBOARD_STATUS: usize = 0x80000;
-pub const KEYBOARD_DATA: usize = 0x80004;
-pub const DISK_ADDR: usize = 0x300000;
+// Re-export constants from ABI
+pub use aether_abi::mmio::{FB_ADDR, KEYBOARD_STATUS, KEYBOARD_DATA, DISK_ADDR};
 
 pub mod fs;
 

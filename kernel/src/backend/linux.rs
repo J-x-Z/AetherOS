@@ -6,11 +6,11 @@
 use super::Backend;
 use std::ptr;
 
-// Memory layout constants (same as macOS)
-const RAM_SIZE: usize = 4 * 1024 * 1024; // 4MB
-const FB_ADDR: usize = 0x100000;         // 1MB offset for framebuffer
-const KEYBOARD_STATUS: usize = 0x80000;
-const KEYBOARD_DATA: usize = 0x80004;
+use aether_abi::mmio::{RAM_SIZE, FB_ADDR, KEYBOARD_STATUS, KEYBOARD_DATA};
+// const RAM_SIZE: usize = 4 * 1024 * 1024; 
+// const FB_ADDR: usize = 0x100000;         
+// const KEYBOARD_STATUS: usize = 0x80000;
+// const KEYBOARD_DATA: usize = 0x80004;
 
 #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
 mod kvm_impl {

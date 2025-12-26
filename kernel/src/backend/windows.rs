@@ -7,11 +7,11 @@ use windows::{
 };
 use std::ptr;
 
-// Memory layout constants (same as other backends)
-const RAM_SIZE: usize = 4 * 1024 * 1024; // 4MB
-const FB_ADDR: usize = 0x100000;         // 1MB offset for framebuffer
-const KEYBOARD_STATUS: usize = 0x80000;
-const KEYBOARD_DATA: usize = 0x80004;
+use aether_abi::mmio::{RAM_SIZE, FB_ADDR, KEYBOARD_STATUS, KEYBOARD_DATA};
+// const RAM_SIZE: usize = 4 * 1024 * 1024; 
+// const FB_ADDR: usize = 0x100000;         
+// const KEYBOARD_STATUS: usize = 0x80000;
+// const KEYBOARD_DATA: usize = 0x80004;
 
 pub struct WindowsBackend {
     #[cfg(target_os = "windows")]
