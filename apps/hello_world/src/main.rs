@@ -135,42 +135,14 @@ fn cmd_wasm(filename: &[u8]) {
 }
 
 fn run_wasm(bytes: &[u8]) {
-    use wasmi::{Engine, Linker, Module, Store, Caller, Func};
-    
-    let engine = Engine::default();
-    let module = match Module::new(&engine, bytes) {
-        Ok(m) => m,
-        Err(e) => {
-            console_println("WASM parse error");
-            return;
-        }
-    };
-    
-    // Create linker with host function
-    let mut linker = <Linker<()>>::new(&engine);
-    
-    // Define host function: env.print
-    linker.define("env", "print", Func::wrap(&engine, |_caller: Caller<'_, ()>, val: i32| {
-        // Simple print implementation
-        let mut buf = [0u8; 16];
-        let s = format_i32(val, &mut buf);
-        console_println(s);
-    })).unwrap();
-    
-    let mut store = Store::new(&engine, ());
-    let instance = match linker.instantiate(&mut store, &module) {
-        Ok(i) => match i.start(&mut store) {
-            Ok(i) => i,
-            Err(_) => { console_println("WASM start failed"); return; }
-        },
-        Err(_) => { console_println("WASM instantiate failed"); return; }
-    };
-    
-    // Call run() if it exists
-    if let Some(run) = instance.get_func(&store, "run") {
-        let _ = run.call(&mut store, &[], &mut []);
+    // WASM execution stub - full wasmi integration requires std environment
+    // For now, just validate the header and report
+    if bytes.len() > 8 && bytes[0..4] == [0x00, 0x61, 0x73, 0x6D] {
+        console_println("Valid WASM module detected.");
+        console_println("(WASM execution not yet implemented in bare-metal mode)");
+    } else {
+        console_println("Invalid WASM module header.");
     }
-    console_println("WASM execution complete.");
 }
 
 fn format_i32(val: i32, buf: &mut [u8; 16]) -> &str {

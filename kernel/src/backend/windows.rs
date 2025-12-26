@@ -58,8 +58,7 @@ impl Backend for WindowsBackend {
             }
             
             // 2. Create partition
-            let mut partition = WHV_PARTITION_HANDLE::default();
-            WHvCreatePartition(&mut partition).expect("Failed to create partition");
+            let partition = WHvCreatePartition().expect("Failed to create partition");
             
             // 3. Set processor count
             let processor_count: u32 = 1;
@@ -103,11 +102,9 @@ impl Backend for WindowsBackend {
             backend
         }
     }
-}
-
-// Helper implementation for Windows-only methods
-#[cfg(target_os = "windows")]
-impl WindowsBackend {
+    
+    // Helper method for Windows-only setup
+    #[cfg(target_os = "windows")]
     unsafe fn setup_long_mode(partition: WHV_PARTITION_HANDLE, mem: *mut u8) {
         // Constants (Same as Linux)
         const PML4_START: u64 = 0x9000;
@@ -192,9 +189,8 @@ impl WindowsBackend {
             &reg_values as *const _ as *const _,
         ).expect("Failed to set registers");
     }
-}
-
-impl Backend for WindowsBackend {
+    
+    // Fallback for non-Windows platforms
     #[cfg(not(target_os = "windows"))]
     fn new() -> Self {
         panic!("Windows Backend not available on this platform");

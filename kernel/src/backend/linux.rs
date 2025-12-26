@@ -151,10 +151,12 @@ mod kvm_impl_x86 {
         KVM_MEM_LOG_DIRTY_PAGES,
     };
 
+    use std::cell::UnsafeCell;
+
     pub struct LinuxBackendInner {
         pub kvm: Kvm,
         pub vm: VmFd,
-        pub vcpu: VcpuFd,
+        pub vcpu: UnsafeCell<VcpuFd>,
         pub mem: *mut u8,
     }
 
@@ -202,7 +204,7 @@ mod kvm_impl_x86 {
             }
             println!("[Aether::LinuxBackend] Loaded guest: {} bytes", guest_bin.len());
 
-            LinuxBackendInner { kvm, vm, vcpu, mem }
+            LinuxBackendInner { kvm, vm, vcpu: UnsafeCell::new(vcpu), mem }
         }
 
         unsafe fn setup_long_mode(vcpu: &VcpuFd, mem: *mut u8) {
@@ -287,8 +289,8 @@ mod kvm_impl_x86 {
 
         pub fn run(&self) {
             println!("[Aether::LinuxBackend] Starting vCPU Loop...");
-            // SAFETY: We have exclusive access to vcpu via Arc ownership in main.rs
-            let vcpu = unsafe { &mut *(&self.vcpu as *const _ as *mut VcpuFd) };
+            // SAFETY: We have exclusive access to vcpu in this thread
+            let vcpu = unsafe { &mut *self.vcpu.get() };
             loop {
                 match vcpu.run() {
                     Ok(exit_reason) => match exit_reason {
