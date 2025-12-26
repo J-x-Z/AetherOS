@@ -201,8 +201,11 @@ impl WindowsBackend {
             &reg_values as *const _ as *const _,
         ).expect("Failed to set registers");
     }
+}
 
-    // Remaining trait methods (run, get_framebuffer, inject_key are below)
+// Continue Backend trait implementation (run, get_framebuffer, inject_key)
+impl Backend for WindowsBackend {
+    #[cfg(target_os = "windows")]
     fn run(&self) {
         println!("[Aether::WindowsBackend] Starting vCPU Loop...");
         
