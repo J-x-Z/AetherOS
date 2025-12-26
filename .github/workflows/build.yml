@@ -10,121 +10,54 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # 1. Build the Guest (Platform Independent)
-  build-guest:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: Install Rust Nightly (for asm if needed, though stability is improved)
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        targets: aarch64-unknown-none
-        components: llvm-tools-preview
-    - name: Install cargo-binutils
-      run: cargo install cargo-binutils
-    - name: Build Guest
-      run: |
-        cd apps/hello_world
-        RUSTFLAGS="-C link-arg=-T$(pwd)/layout.ld -C link-arg=-n" cargo build --release --target aarch64-unknown-none
-        cd ../..
-        rust-objcopy -O binary target/aarch64-unknown-none/release/hello_world apps/hello_world/guest.bin
-    - name: Upload Guest Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: guest-binary
-        path: apps/hello_world/guest.bin
-    - name: Add WASM Target
-      run: rustup target add wasm32-unknown-unknown
-    - name: Build WASM App
-      run: |
-        cargo build --release --target wasm32-unknown-unknown -p wasm_simple
-        # No object copy needed, the .wasm is the artifact
-
-  # 2. Build Kernel - macOS (M1/M2)
-  build-kernel-macos:
-    runs-on: macos-14 # Apple Silicon M1 (Free Tier)
-    needs: build-guest
-    steps:
-    - uses: actions/checkout@v4
-    - name: Download Guest
-      uses: actions/download-artifact@v4
-      with:
-        name: guest-binary
-        path: apps/hello_world
-    - name: Build Kernel
-      run: |
-        cargo build --release -p aether
-    - name: Sign Code
-      run: |
-        codesign --entitlements kernel/entitlements.plist --force -s - target/release/aether
-        
-  # 3. Build Kernel - Linux (Check Only)
-  build-kernel-linux:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: Install Dependencies
-      run: sudo apt-get update && sudo apt-get install -y libxkbcommon-dev libwayland-cursor0 libwayland-egl1 libx11-dev libxcursor-dev libxi-dev libxrandr-dev
-    - name: Check Linux Build
-      run: |
-        cargo check --target x86_64-unknown-linux-gnu -p aether
-
-  # 4. Build Kernel - Windows (Check Only)
-  build-kernel-windows:
-    runs-on: windows-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: Build Windows
-      run: |
-        cargo check --release -p aether
-
-  # 5. Build Kernel - Android (Check Only)
-  build-kernel-android:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: Add Android Target
-      run: rustup target add aarch64-linux-android
-    - name: Check Android Build
-      run: |
-        cargo check --target aarch64-linux-android -p aether
-
-  # 6. Build Kernel - FreeBSD (Cross-compile Check)
-  build-kernel-freebsd:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: Install Rust with FreeBSD Target
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        targets: x86_64-unknown-freebsd
-    - name: Check FreeBSD Build
-      run: cargo check --target x86_64-unknown-freebsd -p aether
-
-  # 7. Build Kernel - NetBSD (Cross-compile Check)
-  build-kernel-netbsd:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: Install Rust with NetBSD Target
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        targets: x86_64-unknown-netbsd
-    - name: Check NetBSD Build
-      run: cargo check --target x86_64-unknown-netbsd -p aether
-
-  # 8. Build Kernel - UEFI (Bare Metal)
-  build-kernel-uefi:
+  # 1. Build Guests (Apps)
+  build-guests:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
     - name: Install Rust Nightly
       uses: dtolnay/rust-toolchain@nightly
       with:
-        targets: x86_64-unknown-uefi
-        components: rust-src, llvm-tools-preview
-    - name: Build UEFI Kernel
+        components: llvm-tools-preview
+    
+    # Hello World (Native/Unikernel)
+    - name: Install cargo-binutils
+      run: cargo install cargo-binutils
+    - name: Build Hello World (aarch64)
       run: |
-        cargo build --target x86_64-unknown-uefi -p aether-kernel-uefi -Z build-std=core,compiler_builtins,alloc
+        cd apps/hello_world
+        RUSTFLAGS="-C link-arg=-T$(pwd)/layout.ld -C link-arg=-n" cargo build --release --target aarch64-unknown-none
+        cd ../..
+        rust-objcopy -O binary target/aarch64-unknown-none/release/hello_world apps/hello_world/guest.bin
+    
+    # WASM App
+    - name: Add WASM Target
+      run: rustup target add wasm32-unknown-unknown
+    - name: Build WASM Simple
+      run: cargo build --release --target wasm32-unknown-unknown -p wasm_simple
 
+  # 2. Build AetherOS Stack - macOS
+  build-aetheros-macos:
+    runs-on: macos-14
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build AetherOS (macOS)
+      run: cargo build --release -p aetheros
 
+  # 3. Build AetherOS Stack - Linux
+  build-aetheros-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Dependencies
+      run: sudo apt-get update && sudo apt-get install -y libxkbcommon-dev libwayland-cursor0 libwayland-egl1 libx11-dev libxcursor-dev libxi-dev libxrandr-dev
+    - name: Build AetherOS (Linux)
+      run: cargo build --release -p aetheros --verbose
+
+  # 4. Build AetherOS Stack - Windows
+  build-aetheros-windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build AetherOS (Windows)
+      run: cargo check --release -p aetheros
