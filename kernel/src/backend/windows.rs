@@ -102,9 +102,11 @@ impl Backend for WindowsBackend {
             backend
         }
     }
-    
-    // Helper method for Windows-only setup
-    #[cfg(target_os = "windows")]
+}
+
+// Helper implementation for Windows-specific methods (not part of Backend trait)
+#[cfg(target_os = "windows")]
+impl WindowsBackend {
     unsafe fn setup_long_mode(partition: WHV_PARTITION_HANDLE, mem: *mut u8) {
         // Constants (Same as Linux)
         const PML4_START: u64 = 0x9000;
@@ -189,7 +191,10 @@ impl Backend for WindowsBackend {
             &reg_values as *const _ as *const _,
         ).expect("Failed to set registers");
     }
-    
+}
+
+// Continue Backend trait implementation
+impl Backend for WindowsBackend {
     // Fallback for non-Windows platforms
     #[cfg(not(target_os = "windows"))]
     fn new() -> Self {
