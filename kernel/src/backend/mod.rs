@@ -1,8 +1,28 @@
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ExitReason {
+    Yield,      // Time slice expired or voluntary yield
+    Io(u16),    // IO Access (Port)
+    Mmio(u64),  // MMIO Access (Address)
+    Halt,       // Guest Halted
+    Unknown,    // Other exit reasons
+}
+
 pub trait Backend: Sync + Send {
-    fn new() -> Self;
+    fn new() -> Self where Self: Sized;
     fn name(&self) -> &str;
-    fn run(&self);
-    // Unsafe because it returns a slice to raw memory modified by another thread
+    
+    /// Run the vCPU corresponding to one time slice or until an exit event.
+    fn step(&self) -> ExitReason;
+    
+    /// Legacy run loop (will be deprecated by Scheduler)
+    fn run(&self) {
+        loop {
+            if self.step() == ExitReason::Halt {
+                break;
+            }
+        }
+    }
+    
     // Unsafe because it returns a slice to raw memory modified by another thread
     unsafe fn get_framebuffer(&self, width: usize, height: usize) -> &[u32];
 

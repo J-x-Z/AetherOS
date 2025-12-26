@@ -11,7 +11,7 @@ impl Backend for DragonFlyBackend {
         "DragonFlyBSD VMM"
     }
     
-    fn run(&self) {
+    fn step(&self) -> super::ExitReason {
         unimplemented!();
     }
     

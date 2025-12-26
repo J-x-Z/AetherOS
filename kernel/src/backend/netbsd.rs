@@ -11,7 +11,7 @@ impl Backend for NetBsdBackend {
         "NetBSD NVMM"
     }
     
-    fn run(&self) {
+    fn step(&self) -> super::ExitReason {
         unimplemented!();
     }
     

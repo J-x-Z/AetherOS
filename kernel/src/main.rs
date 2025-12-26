@@ -1,4 +1,7 @@
 mod backend;
+mod scheduler;
+
+use scheduler::Scheduler;
 
 use backend::Backend;
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
@@ -34,11 +37,19 @@ fn main() {
     // 3. Thread spawn: instance.run().
     // 4. Main Loop: Read RAM via ptr, Update Window.
 
+    // 1. Initialize Backend (Shared Ownership via Arc)
     let backend = Arc::new(backend::CurrentBackend::new());
-    let backend_clone = backend.clone();
     
+    // 2. Clone for Scheduler
+    let scheduler_backend = backend.clone();
+    
+    // 3. Spawn Scheduler Thread
     thread::spawn(move || {
-        backend_clone.run();
+        let mut scheduler = Scheduler::new();
+        // Register the initial process (PID 1)
+        scheduler.spawn(scheduler_backend);
+        // Start Scheduling Loop
+        scheduler.run();
     });
 
     #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]

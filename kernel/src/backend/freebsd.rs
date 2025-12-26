@@ -11,7 +11,7 @@ impl Backend for FreeBsdBackend {
         "bhyve"
     }
     
-    fn run(&self) {
+    fn step(&self) -> super::ExitReason {
         unimplemented!();
     }
     

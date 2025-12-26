@@ -164,44 +164,48 @@ impl Backend for WindowsBackend {
     }
     
     #[cfg(target_os = "windows")]
-    fn run(&self) {
-        println!("[Aether::WindowsBackend] Starting vCPU Loop...");
-        
+    fn step(&self) -> super::ExitReason {
         unsafe {
-            loop {
-                let mut exit_context = WHV_RUN_VP_EXIT_CONTEXT::default();
-                
-                let result = WHvRunVirtualProcessor(
-                    self.partition,
-                    0,
-                    &mut exit_context as *mut _ as *mut _,
-                    std::mem::size_of::<WHV_RUN_VP_EXIT_CONTEXT>() as u32,
-                );
-                
-                if result.is_err() {
-                    eprintln!("[Error] vCPU run failed");
-                    break;
+            let mut exit_context = WHV_RUN_VP_EXIT_CONTEXT::default();
+            
+            let result = WHvRunVirtualProcessor(
+                self.partition,
+                0,
+                &mut exit_context as *mut _ as *mut _,
+                std::mem::size_of::<WHV_RUN_VP_EXIT_CONTEXT>() as u32,
+            );
+            
+            if result.is_err() {
+                eprintln!("[Error] vCPU run failed");
+                return super::ExitReason::Halt;
+            }
+            
+            match exit_context.ExitReason {
+                WHvRunVpExitReasonMemoryAccess => {
+                    // Check if Read or Write (simplification: assume Read for now or check access info)
+                    // The AccessInfo is in exit_context.MemoryAccess
+                    let addr = exit_context.Anonymous.MemoryAccess.Gpa;
+                    super::ExitReason::Mmio(addr)
                 }
-                
-                match exit_context.ExitReason {
-                    WHvRunVpExitReasonMemoryAccess => {
-                        println!("[Debug] Memory access exit");
-                    }
-                    WHvRunVpExitReasonX64Halt | WHvRunVpExitReasonCanceled => {
-                        println!("[Aether::WindowsBackend] Guest halted");
-                        break;
-                    }
-                    _ => {
-                        println!("[Debug] Exit reason: {:?}", exit_context.ExitReason);
-                    }
+                WHvRunVpExitReasonX64Halt | WHvRunVpExitReasonCanceled => {
+                    println!("[Aether::WindowsBackend] Guest halted");
+                    super::ExitReason::Halt
+                }
+                WHvRunVpExitReasonX64IoPortAccess => {
+                    let port = exit_context.Anonymous.IoPortAccess.PortNumber;
+                    super::ExitReason::Io(port)
+                }
+                _ => {
+                    println!("[Debug] Exit reason: {:?}", exit_context.ExitReason);
+                    super::ExitReason::Unknown
                 }
             }
         }
     }
     
     #[cfg(not(target_os = "windows"))]
-    fn run(&self) {
-        unimplemented!();
+    fn step(&self) -> super::ExitReason {
+        super::ExitReason::Halt
     }
     
     unsafe fn get_framebuffer(&self, width: usize, height: usize) -> &[u32] {

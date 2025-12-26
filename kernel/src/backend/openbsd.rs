@@ -11,7 +11,7 @@ impl Backend for OpenBsdBackend {
         "OpenBSD vmm"
     }
     
-    fn run(&self) {
+    fn step(&self) -> super::ExitReason {
         unimplemented!();
     }
     

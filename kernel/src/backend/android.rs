@@ -17,11 +17,10 @@ impl Backend for AndroidBackend {
         "Android AVF (Stub)"
     }
     
-    fn run(&self) {
+    fn step(&self) -> super::ExitReason {
         // No-op stub
-        loop {
-            std::thread::sleep(std::time::Duration::from_secs(1));
-        }
+        std::thread::sleep(std::time::Duration::from_secs(1));
+        super::ExitReason::Yield
     }
     
     unsafe fn get_framebuffer(&self, _width: usize, _height: usize) -> &[u32] {

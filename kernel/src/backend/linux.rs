@@ -85,39 +85,33 @@ mod kvm_impl {
             LinuxBackendInner { kvm, vm, vcpu, mem }
         }
         
-        pub fn run(&self) {
-            println!("[Aether::LinuxBackend] Starting vCPU Loop...");
-            
-            loop {
-                match self.vcpu.run() {
-                    Ok(exit_reason) => {
-                        match exit_reason {
-                            VcpuExit::Hvc => {
-                                println!("[Guest] Hypercall received");
-                                // TODO: Handle hypercall
-                            }
-                            VcpuExit::MmioRead(addr, _data) => {
-                                println!("[Debug] MMIO Read: 0x{:x}", addr);
-                            }
-                            VcpuExit::MmioWrite(addr, _data) => {
-                                println!("[Debug] MMIO Write: 0x{:x}", addr);
-                            }
-                            VcpuExit::Shutdown => {
-                                println!("[Aether::LinuxBackend] Guest shutdown");
-                                break;
-                            }
-                            VcpuExit::SystemEvent(event_type, flags) => {
-                                println!("[Debug] System event: type={}, flags={:?}", event_type, flags);
-                            }
-                            other => {
-                                println!("[Debug] Unhandled exit: {:?}", other);
-                            }
-                        }
+        pub fn step(&self) -> super::ExitReason {
+            match self.vcpu.run() {
+                Ok(exit_reason) => match exit_reason {
+                    VcpuExit::Hvc => {
+                        // println!("[Guest] Hypercall received");
+                        super::ExitReason::Yield
                     }
-                    Err(e) => {
-                        eprintln!("[Error] vCPU run failed: {}", e);
-                        break;
+                    VcpuExit::MmioRead(addr, _data) => {
+                        super::ExitReason::Mmio(addr)
                     }
+                    VcpuExit::MmioWrite(addr, _data) => {
+                        super::ExitReason::Mmio(addr)
+                    }
+                    VcpuExit::Shutdown => {
+                        println!("[Aether::LinuxBackend] Guest shutdown");
+                        super::ExitReason::Halt
+                    }
+                    VcpuExit::SystemEvent(_event_type, _flags) => {
+                        super::ExitReason::Unknown
+                    }
+                    _ => {
+                        super::ExitReason::Unknown
+                    }
+                },
+                Err(e) => {
+                    eprintln!("[Error] vCPU run failed: {}", e);
+                    super::ExitReason::Halt
                 }
             }
         }
@@ -287,36 +281,33 @@ mod kvm_impl_x86 {
             vcpu.set_regs(&regs).expect("set regs");
         }
 
-        pub fn run(&self) {
-            println!("[Aether::LinuxBackend] Starting vCPU Loop...");
-            // SAFETY: We have exclusive access to vcpu in this thread
+        pub fn step(&self) -> super::ExitReason {
+            // SAFETY: We have exclusive access to vcpu in this thread (via Scheduler)
             let vcpu = unsafe { &mut *self.vcpu.get() };
-            loop {
-                match vcpu.run() {
-                    Ok(exit_reason) => match exit_reason {
-                        VcpuExit::IoOut(addr, data) => {
-                            // Simple IO Out for debugging
-                            if addr == 0x3f8 && !data.is_empty() {
-                                print!("{}", data[0] as char);
-                            }
+            match vcpu.run() {
+                Ok(exit_reason) => match exit_reason {
+                    VcpuExit::IoOut(addr, data) => {
+                        // Simple IO Out for debugging
+                        if addr == 0x3f8 && !data.is_empty() {
+                            print!("{}", data[0] as char);
                         }
-                        VcpuExit::MmioWrite(addr, _data) => {
-                             // Handle MMIO Write (FB, Keyboard, etc.)
-                             // Ideally we would map this to the same logic as ARM
-                        }
-                        VcpuExit::MmioRead(addr, _data) => {
-                             // Handle MMIO Read
-                        }
-                        VcpuExit::Hlt => {
-                            println!("[Guest] HLT");
-                            break;
-                        }
-                         _ => { /* Ignore or debug */ }
-                    },
-                    Err(e) => {
-                        eprintln!("vCPU Run failed: {}", e);
-                        break;
+                        super::ExitReason::Io(addr)
                     }
+                    VcpuExit::MmioWrite(addr, _data) => {
+                         super::ExitReason::Mmio(addr)
+                    }
+                    VcpuExit::MmioRead(addr, _data) => {
+                         super::ExitReason::Mmio(addr)
+                    }
+                    VcpuExit::Hlt => {
+                        println!("[Guest] HLT");
+                        super::ExitReason::Halt
+                    }
+                     _ => { super::ExitReason::Unknown }
+                },
+                Err(e) => {
+                    eprintln!("vCPU Run failed: {}", e);
+                    super::ExitReason::Halt
                 }
             }
         }
@@ -353,18 +344,22 @@ impl Backend for LinuxBackend {
         "KVM (Linux)"
     }
     
-    fn run(&self) {
+    fn step(&self) -> super::ExitReason {
         #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
         {
-            self.inner.run();
+            self.inner.step()
         }
         
         #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
         {
-            self.inner.run();
+            self.inner.step()
+        }
+        
+        #[cfg(not(target_os = "linux"))]
+        {
+            super::ExitReason::Halt
         }
     }
-    
     unsafe fn get_framebuffer(&self, width: usize, height: usize) -> &[u32] {
         #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
         {
